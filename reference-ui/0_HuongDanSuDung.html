@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+// ===== AUTH CHECK =====
+(function(){
+  var REQUIRED_ROLE = 'viewer';
+  try{
+    var s = JSON.parse(localStorage.getItem('tlcn_session')||'null');
+    if(!s || s.expires < Date.now()){
+      location.href='0_DangNhap.html?from='+encodeURIComponent(location.pathname.split('/').pop());
+      return;
+    }
+    // Role check
+    var roles = {superadmin:3, admin:2, viewer:1};
+    var userLevel = roles[s.role]||0;
+    var reqLevel  = roles[REQUIRED_ROLE]||1;
+    if(userLevel < reqLevel){
+      alert('⛔ Bạn không có quyền truy cập trang này.');
+      location.href='index.html';
+    }
+  }catch(e){
+    location.href='0_DangNhap.html';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hướng Dẫn Sử Dụng · Hệ Thống Kiểm Tra Tiêu Lệnh TTCIZ</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Be Vietnam Pro',sans-serif;background:#F7F8FA;color:#1A202C;line-height:1.7;}
+.wrap{max-width:860px;margin:0 auto;padding:48px 24px 80px;}
+
+/* Header */
+.hd{background:linear-gradient(135deg,#1B5E20 0%,#2E7D32 50%,#388E3C 100%);color:#fff;border-radius:16px;padding:36px 40px;margin-bottom:40px;position:relative;overflow:hidden;}
+.hd::before{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.06);}
+.hd::after{content:'';position:absolute;right:60px;top:20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.04);}
+.hd-tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:.7;margin-bottom:8px;}
+.hd-title{font-size:28px;font-weight:700;margin-bottom:6px;}
+.hd-sub{font-size:14px;opacity:.75;}
+
+/* Files grid */
+.files{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:40px;}
+.file-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:20px;border-left:4px solid;}
+.file-card.f1{border-left-color:#1B5E20;}
+.file-card.f2{border-left-color:#1565C0;}
+.file-card.f3{border-left-color:#E65100;}
+.file-num{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.5;margin-bottom:6px;}
+.file-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+.file-desc{font-size:13px;color:#64748B;}
+.file-icon{font-size:28px;margin-bottom:10px;}
+
+/* Steps */
+.section{margin-bottom:36px;}
+.sec-title{font-size:18px;font-weight:700;color:#1B5E20;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #E8F5E9;display:flex;align-items:center;gap:8px;}
+.steps{display:flex;flex-direction:column;gap:12px;}
+.step{display:flex;gap:16px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px;align-items:flex-start;}
+.step-num{width:32px;height:32px;border-radius:50%;background:#1B5E20;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-body{flex:1;}
+.step-title{font-weight:600;font-size:14px;margin-bottom:3px;}
+.step-desc{font-size:13px;color:#64748B;}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;margin:2px 2px 0;}
+.tag-green{background:#E8F5E9;color:#1B5E20;}
+.tag-blue{background:#E3F2FD;color:#1565C0;}
+.tag-red{background:#FFEBEE;color:#C62828;}
+.tag-orange{background:#FFF3E0;color:#E65100;}
+
+/* Flow */
+.flow{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:24px;margin-bottom:20px;}
+.flow-title{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748B;margin-bottom:16px;}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;gap:4px;}
+.flow-box{background:#F1F5F9;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;text-align:center;flex:1;min-width:120px;}
+.flow-box.green{background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;}
+.flow-box.blue{background:#E3F2FD;border-color:#90CAF9;color:#1565C0;}
+.flow-box.orange{background:#FFF3E0;border-color:#FFCC80;color:#E65100;}
+.flow-arrow{font-size:18px;color:#CBD5E0;padding:0 2px;}
+
+/* Note */
+.note{background:#FFF8E1;border:1px solid #FFE082;border-radius:10px;padding:16px 20px;font-size:13px;color:#5D4037;}
+.note strong{color:#E65100;}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #E2E8F0;}
+th{background:#F8FAFC;padding:10px 14px;text-align:left;font-weight:600;color:#64748B;font-size:11px;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #E2E8F0;}
+td{padding:11px 14px;border-bottom:1px solid #F1F5F9;vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+
+@media(max-width:600px){.files{grid-template-columns:1fr;}.flow-row{flex-direction:column;}.flow-arrow{transform:rotate(90deg);align-self:center;}}
+</style>
+</head>
+<body>
+<style>
+.home-btn{
+  position:fixed;top:14px;left:14px;z-index:9999;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 18px;
+  background:rgba(27,94,32,.92);
+  border:1px solid rgba(67,160,71,.5);
+  border-radius:30px;
+  color:#fff;font-size:11px;font-weight:700;
+  text-decoration:none;
+  font-family:'Be Vietnam Pro','Segoe UI',sans-serif;
+  letter-spacing:.5px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 3px 14px rgba(0,0,0,.35);
+  transition:all .2s;
+}
+.home-btn:hover{
+  background:rgba(27,94,32,1);
+  border-color:rgba(67,160,71,.8);
+  box-shadow:0 4px 20px rgba(27,94,32,.5);
+  transform:translateY(-1px);
+}
+.home-btn svg{width:14px;height:14px;flex-shrink:0;}
+</style>
+<a href="index.html" class="home-btn">
+  <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h4a1 1 0 001-1v-3h2v3a1 1 0 001 1h4a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+  Trang chủ
+</a>
+
+<div class="wrap">
+
+  <div class="hd">
+    <div class="hd-tag">TTCIZ · Hệ thống nội bộ</div>
+    <div class="hd-title">📋 Hướng Dẫn Sử Dụng</div>
+    <div class="hd-sub">Hệ thống Quay Số Kiểm Tra Tiêu Lệnh Chức Danh</div>
+  </div>
+
+  <!-- Files -->
+  <div class="section">
+    <div class="sec-title">📁 Bộ 4 File</div>
+    <div class="files">
+      <div class="file-card f1">
+        <div class="file-icon">🎛️</div>
+        <div class="file-num">File 1</div>
+        <div class="file-name">1_Admin_QuaySo.html</div>
+        <div class="file-desc">Màn hình điều khiển cho người quản trị — quay số, ghi kết quả, đổi màu giao diện</div>
+      </div>
+      <div class="file-card f2">
+        <div class="file-icon">📺</div>
+        <div class="file-num">File 2</div>
+        <div class="file-name">2_ManHinhLED.html</div>
+        <div class="file-desc">Màn hình LED chiếu lên màn hình lớn cho mọi người xem — fullscreen, tự cập nhật</div>
+      </div>
+      <div class="file-card f3">
+        <div class="file-icon">⚙️</div>
+        <div class="file-num">File 3</div>
+        <div class="file-name">3_CapNhatDuLieu.html</div>
+        <div class="file-desc">Công cụ cập nhật danh sách nhân viên và nội dung tiêu lệnh, import/export dữ liệu</div>
+      </div>
+      <div class="file-card" style="border-left-color:#7B1FA2;">
+        <div class="file-icon">📖</div>
+        <div class="file-num">File 4</div>
+        <div class="file-name">0_HuongDanSuDung.html</div>
+        <div class="file-desc">File này — hướng dẫn sử dụng toàn bộ hệ thống</div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>⚠️ Quan trọng:</strong> Tất cả 4 file phải được mở trên <strong>cùng một trình duyệt</strong> (Chrome/Edge/Firefox) trên <strong>cùng một máy tính</strong> để chia sẻ dữ liệu qua localStorage. Chỉ cần double-click file .html là dùng được — không cần cài đặt gì thêm.
+    </div>
+  </div>
+
+  <!-- Cách dùng buổi kiểm tra -->
+  <div class="section">
+    <div class="sec-title">🚀 Quy Trình Sử Dụng Buổi Kiểm Tra</div>
+
+    <div class="flow" style="margin-bottom:16px;">
+      <div class="flow-title">Thiết lập trước buổi</div>
+      <div class="flow-row">
+        <div class="flow-box">Mở File 3<br><small>Cập nhật dữ liệu</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">Mở File 1<br><small>Admin (máy MC)</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box blue">Mở File 2<br><small>LED (màn hình lớn)</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box green">Sẵn sàng!</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-title">Quy trình mỗi lượt kiểm tra</div>
+      <div class="flow-row">
+        <div class="flow-box green">Admin nhấn<br><strong>QUAY SỐ</strong></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">LED hiện<br>Tên + Số TL</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box orange">NV đọc<br>tiêu lệnh</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box green">Admin nhấn<br><strong>ĐẠT</strong></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box blue">LED hiện<br>nội dung TL</div>
+      </div>
+    </div>
+
+    <br>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Mở màn hình LED lên màn hình lớn</div>
+          <div class="step-desc">Double-click <span class="tag tag-blue">2_ManHinhLED.html</span> → nhấn F11 để toàn màn hình. Kéo cửa sổ sang màn hình chiếu.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Mở màn hình Admin trên máy MC</div>
+          <div class="step-desc">Double-click <span class="tag tag-green">1_Admin_QuaySo.html</span> trên cùng máy tính — giữ cửa sổ này cho MC.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Nhấn QUAY SỐ</div>
+          <div class="step-desc">Admin nhấn nút <span class="tag tag-green">▶ QUAY SỐ</span>. Máy quay drum sẽ chạy → dừng lại hiện số thứ tự và tiêu lệnh số. Màn hình LED tự động hiện tên nhân viên, mã số, chức vụ, số tiêu lệnh. Admin thấy đầy đủ cả nội dung tiêu lệnh để theo dõi.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Nhân viên đọc tiêu lệnh</div>
+          <div class="step-desc">Nhân viên được gọi tên đứng lên đọc tiêu lệnh theo số đã quay. Màn hình LED chỉ hiện ô <strong>🔒 CHỜ KẾT QUẢ</strong> — khán giả chưa biết nội dung.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Admin nhấn Đạt hoặc Chưa Đạt</div>
+          <div class="step-desc">Admin nhấn <span class="tag tag-green">✓ ĐẠT</span> hoặc <span class="tag tag-red">✗ CHƯA ĐẠT</span>. Lúc này màn hình LED mới hiện nội dung tiêu lệnh + flash kết quả to cho mọi người thấy.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tính năng -->
+  <div class="section">
+    <div class="sec-title">⚙️ Các Tính Năng</div>
+    <table>
+      <thead><tr><th>Tính năng</th><th>Mô tả</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Quay ngẫu nhiên</strong></td><td>Tự động chọn ngẫu nhiên nhân viên và tiêu lệnh</td><td><span class="tag tag-green">Admin</span></td></tr>
+        <tr><td><strong>Chọn thủ công</strong></td><td>MC chọn tay nhân viên cụ thể và tiêu lệnh số bao nhiêu</td><td><span class="tag tag-green">Admin</span></td></tr>
+        <tr><td><strong>Lịch sử kiểm tra</strong></td><td>Xem lại toàn bộ kết quả các lượt đã qua</td><td><span class="tag tag-green">Admin</span></td></tr>
+        <tr><td><strong>Thống kê</strong></td><td>Tổng số phiên, số đạt, số chưa đạt theo từng người</td><td><span class="tag tag-green">Admin</span></td></tr>
+        <tr><td><strong>Đổi màu giao diện</strong></td><td>Đổi màu nền, màu chữ, màu nhấn cho Admin và LED riêng biệt. Có 4 preset nhanh.</td><td><span class="tag tag-green">Admin</span></td></tr>
+        <tr><td><strong>Màn hình LED fullscreen</strong></td><td>Drum animation, hiện info sau quay, hiện nội dung TL sau verdict, flash ĐẠT/CHƯA ĐẠT</td><td><span class="tag tag-blue">LED</span></td></tr>
+        <tr><td><strong>Cập nhật nhân viên</strong></td><td>Thêm/sửa/xóa nhân viên, tìm kiếm theo tên hoặc mã ID</td><td><span class="tag tag-orange">File 3</span></td></tr>
+        <tr><td><strong>Cập nhật tiêu lệnh</strong></td><td>Chọn nhân viên → sửa từng dòng tiêu lệnh</td><td><span class="tag tag-orange">File 3</span></td></tr>
+        <tr><td><strong>Import / Export</strong></td><td>Xuất JSON để backup, nhập lại khi chuyển máy</td><td><span class="tag tag-orange">File 3</span></td></tr>
+        <tr><td><strong>Reset dữ liệu</strong></td><td>Khôi phục về dữ liệu gốc từ file Excel ban đầu</td><td><span class="tag tag-orange">File 3</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section">
+    <div class="sec-title">❓ Câu Hỏi Thường Gặp</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num" style="background:#E65100;">Q</div>
+        <div class="step-body">
+          <div class="step-title">Màn hình LED không cập nhật khi Admin quay số?</div>
+          <div class="step-desc">Kiểm tra xem 2 file có được mở trên <strong>cùng một trình duyệt</strong> và <strong>cùng một máy tính</strong> không. Nếu mở trên 2 máy khác nhau thì localStorage không chia sẻ được.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:#E65100;">Q</div>
+        <div class="step-body">
+          <div class="step-title">Hiển thị "(Chưa có nội dung tiêu lệnh)"?</div>
+          <div class="step-desc">Vào <span class="tag tag-orange">File 3</span> → tab <strong>Cài đặt & Reset</strong> → nhấn <strong>"Khôi phục dữ liệu mặc định"</strong> để nạp lại đầy đủ 71 bộ tiêu lệnh.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:#E65100;">Q</div>
+        <div class="step-body">
+          <div class="step-title">Muốn chuyển sang máy tính khác?</div>
+          <div class="step-desc">Vào <span class="tag tag-orange">File 3</span> → tab <strong>Import/Export</strong> → xuất JSON nhân viên và tiêu lệnh → copy 4 file HTML + 2 file JSON sang máy mới → import lại dữ liệu.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:#E65100;">Q</div>
+        <div class="step-body">
+          <div class="step-title">Muốn xóa lịch sử sau mỗi buổi kiểm tra?</div>
+          <div class="step-desc">Vào <span class="tag tag-green">Admin</span> → tab <strong>Lịch Sử</strong> → nhấn <strong>"Xóa Tất Cả"</strong>. Hoặc vào <span class="tag tag-orange">File 3</span> → <strong>Cài đặt & Reset</strong> → <strong>"Xóa lịch sử & thống kê"</strong>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:#94A3B8;font-size:12px;padding-top:32px;border-top:1px solid #E2E8F0;">
+    TTCIZ · Hệ thống Kiểm Tra Tiêu Lệnh Chức Danh · Phiên bản 2.0
+  </div>
+
+</div>
+</body>
+</html>
