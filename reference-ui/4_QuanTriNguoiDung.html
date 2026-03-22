@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTCIZ · Quản Trị Người Dùng</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#07120a; --bg2:#0c1e10; --bg3:#111f14; --bg4:#172a1b;
+  --border:rgba(67,160,71,.15); --border2:rgba(67,160,71,.25);
+  --green:#43A047; --gold:#C8A84B; --red:#E53935;
+  --txt:#e8f5e9; --dim:rgba(232,245,233,.45); --dim2:rgba(232,245,233,.28);
+}
+body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
+
+/* Header */
+.hdr{
+  background:linear-gradient(135deg,#0d2311,#132d18);
+  border-bottom:1px solid var(--border2);
+  padding:0 32px;height:60px;
+  display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:100;
+}
+.hdr-logo{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#fff;letter-spacing:2px;}
+.hdr-sep{color:var(--border2);}
+.hdr-title{font-size:13px;color:var(--dim);font-weight:600;}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.hdr-user{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.3);border:1px solid var(--border);
+  border-radius:8px;padding:6px 14px;font-size:12px;color:var(--dim);
+}
+.hdr-user strong{color:var(--txt);}
+.btn-out{
+  padding:6px 14px;background:rgba(229,57,53,.1);border:1px solid rgba(229,57,53,.25);
+  border-radius:8px;color:#ef9a9a;font-size:11px;font-weight:700;cursor:pointer;
+  font-family:'Be Vietnam Pro',sans-serif;letter-spacing:.5px;
+  transition:all .2s;
+}
+.btn-out:hover{background:rgba(229,57,53,.2);}
+
+/* Nav tabs */
+.nav{display:flex;gap:2px;padding:0 32px;background:var(--bg2);border-bottom:1px solid var(--border);}
+.nav a{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 18px;font-size:12px;font-weight:600;
+  color:var(--dim);text-decoration:none;
+  border-bottom:2px solid transparent;transition:all .2s;
+}
+.nav a:hover{color:var(--txt);}
+.nav a.active{color:var(--green);border-bottom-color:var(--green);}
+
+/* Main */
+.main{padding:28px 32px;max-width:1200px;margin:0 auto;}
+
+/* Stats bar */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.stat{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:16px 20px;
+  display:flex;align-items:center;gap:14px;
+}
+.stat-ico{font-size:22px;}
+.stat-val{font-size:22px;font-weight:800;color:var(--txt);}
+.stat-lbl{font-size:10px;color:var(--dim2);text-transform:uppercase;letter-spacing:1px;margin-top:1px;}
+
+/* Toolbar */
+.toolbar{
+  display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;
+}
+.search-wrap{
+  flex:1;min-width:200px;
+  position:relative;
+}
+.search-wrap input{
+  width:100%;padding:10px 14px 10px 36px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--txt);
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;outline:none;
+  transition:border-color .2s;
+}
+.search-wrap input:focus{border-color:var(--border2);}
+.search-wrap input::placeholder{color:var(--dim2);}
+.search-wrap .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.4;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:10px 18px;border-radius:8px;font-size:12px;
+  font-weight:700;cursor:pointer;letter-spacing:.5px;
+  font-family:'Be Vietnam Pro',sans-serif;transition:all .18s;border:1px solid;
+}
+.btn-add{background:linear-gradient(135deg,#1B5E20,#2E7D32);border-color:rgba(67,160,71,.4);color:#fff;}
+.btn-add:hover{filter:brightness(1.1);}
+.btn-sec{background:var(--bg4);border-color:var(--border);color:var(--dim);}
+.btn-sec:hover{color:var(--txt);border-color:var(--border2);}
+
+/* Table */
+.tbl-wrap{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;
+}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{
+  padding:13px 16px;
+  background:rgba(0,0,0,.2);
+  font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--dim2);text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.tbl td{
+  padding:14px 16px;font-size:13px;
+  border-bottom:1px solid rgba(67,160,71,.06);
+  vertical-align:middle;
+}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover{background:rgba(67,160,71,.04);}
+
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:5px;font-size:10px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.badge-super{background:rgba(200,168,75,.15);border:1px solid rgba(200,168,75,.3);color:var(--gold);}
+.badge-admin{background:rgba(67,160,71,.12);border:1px solid rgba(67,160,71,.25);color:#81C784;}
+.badge-viewer{background:rgba(66,165,245,.1);border:1px solid rgba(66,165,245,.2);color:#90CAF9;}
+
+.status-dot{
+  width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;
+}
+.dot-on{background:#43A047;box-shadow:0 0 6px #43A047;}
+.dot-off{background:#616161;}
+
+.action-btns{display:flex;gap:6px;}
+.act{
+  padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1px solid;font-family:'Be Vietnam Pro',sans-serif;
+  transition:all .15s;
+}
+.act-edit{background:rgba(67,160,71,.1);border-color:rgba(67,160,71,.25);color:#81C784;}
+.act-edit:hover{background:rgba(67,160,71,.2);}
+.act-pwd{background:rgba(200,168,75,.08);border-color:rgba(200,168,75,.2);color:var(--gold);}
+.act-pwd:hover{background:rgba(200,168,75,.18);}
+.act-toggle{background:rgba(0,0,0,.2);border-color:var(--border);color:var(--dim);}
+.act-toggle:hover{color:var(--txt);border-color:var(--border2);}
+.act-del{background:rgba(229,57,53,.08);border-color:rgba(229,57,53,.2);color:#EF9A9A;}
+.act-del:hover{background:rgba(229,57,53,.18);}
+
+/* Modal */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:200;display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-bg.open{display:flex;}
+.modal{
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:18px;padding:32px;width:460px;max-width:95vw;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+  animation:mPop .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes mPop{from{transform:scale(.9);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal h2{
+  font-family:'Orbitron',monospace;font-size:14px;letter-spacing:2px;
+  color:var(--green);margin-bottom:24px;
+}
+.mfield{margin-bottom:16px;}
+.mfield label{
+  display:block;font-size:10px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:var(--dim2);margin-bottom:7px;
+}
+.mfield input,.mfield select{
+  width:100%;padding:11px 14px;
+  background:rgba(0,0,0,.35);border:1px solid var(--border);
+  border-radius:8px;color:var(--txt);
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;outline:none;
+  transition:border-color .2s;
+}
+.mfield input:focus,.mfield select:focus{border-color:var(--border2);}
+.mfield input::placeholder{color:var(--dim2);}
+.mfield select option{background:#1a3320;}
+.mrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.mbtn-row{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+.mbtn{
+  padding:10px 20px;border-radius:8px;font-size:12px;font-weight:700;
+  cursor:pointer;letter-spacing:.5px;font-family:'Be Vietnam Pro',sans-serif;
+  transition:all .15s;border:1px solid;
+}
+.mbtn-primary{background:linear-gradient(135deg,#1B5E20,#2E7D32);border-color:rgba(67,160,71,.4);color:#fff;}
+.mbtn-primary:hover{filter:brightness(1.1);}
+.mbtn-cancel{background:var(--bg4);border-color:var(--border);color:var(--dim);}
+.mbtn-cancel:hover{color:var(--txt);}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:999;
+  padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;
+  display:none;animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.toast.pass{background:rgba(27,94,32,.9);border:1px solid rgba(67,160,71,.4);color:#A5D6A7;}
+.toast.fail{background:rgba(183,28,28,.9);border:1px solid rgba(229,57,53,.4);color:#FFCDD2;}
+.toast.info{background:rgba(13,28,18,.95);border:1px solid var(--border2);color:var(--dim);}
+
+.empty{
+  text-align:center;padding:60px 20px;color:var(--dim2);
+}
+.empty-ico{font-size:40px;margin-bottom:12px;}
+.empty-txt{font-size:14px;}
+</style>
+</head>
+<body>
+<style>
+.home-btn{
+  position:fixed;top:14px;left:14px;z-index:9999;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 18px;
+  background:rgba(27,94,32,.92);
+  border:1px solid rgba(67,160,71,.5);
+  border-radius:30px;
+  color:#fff;font-size:11px;font-weight:700;
+  text-decoration:none;
+  font-family:'Be Vietnam Pro','Segoe UI',sans-serif;
+  letter-spacing:.5px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 3px 14px rgba(0,0,0,.35);
+  transition:all .2s;
+}
+.home-btn:hover{
+  background:rgba(27,94,32,1);
+  border-color:rgba(67,160,71,.8);
+  box-shadow:0 4px 20px rgba(27,94,32,.5);
+  transform:translateY(-1px);
+}
+.home-btn svg{width:14px;height:14px;flex-shrink:0;}
+</style>
+<a href="index.html" class="home-btn">
+  <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h4a1 1 0 001-1v-3h2v3a1 1 0 001 1h4a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+  Trang chủ
+</a>
+
+
+<!-- Header -->
+<header class="hdr">
+  <span class="hdr-logo">TTCIZ</span>
+  <span class="hdr-sep">·</span>
+  <span class="hdr-title">Quản Trị Người Dùng</span>
+  <div class="hdr-right">
+    <div class="hdr-user">Xin chào, <strong id="hdrName">—</strong></div>
+    <button class="btn-out" onclick="doLogout()">↩ Đăng xuất</button>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="index.html">🏠 Trang chủ</a>
+  <a href="1_Admin_QuaySo.html">🎛 Admin Quay Số</a>
+  <a href="4_QuanTriNguoiDung.html" class="active">👥 Quản Trị Người Dùng</a>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="stat-ico">👥</div><div><div class="stat-val" id="stTotal">0</div><div class="stat-lbl">Tổng người dùng</div></div></div>
+    <div class="stat"><div class="stat-ico">✅</div><div><div class="stat-val" id="stActive">0</div><div class="stat-lbl">Đang hoạt động</div></div></div>
+    <div class="stat"><div class="stat-ico">🔑</div><div><div class="stat-val" id="stAdmin">0</div><div class="stat-lbl">Quản trị viên</div></div></div>
+    <div class="stat"><div class="stat-ico">👁</div><div><div class="stat-val" id="stViewer">0</div><div class="stat-lbl">Người xem</div></div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="ico">🔍</span>
+      <input type="text" id="searchInput" placeholder="Tìm theo tên, tên đăng nhập..." oninput="renderTable()">
+    </div>
+    <select id="filterRole" onchange="renderTable()" style="padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-family:'Be Vietnam Pro',sans-serif;font-size:12px;outline:none;cursor:pointer;">
+      <option value="">Tất cả quyền</option>
+      <option value="superadmin">Super Admin</option>
+      <option value="admin">Admin</option>
+      <option value="viewer">Người xem</option>
+    </select>
+    <button class="btn btn-add" onclick="openAddModal()">➕ Thêm người dùng</button>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width:50px">#</th>
+          <th>Tên đăng nhập</th>
+          <th>Họ tên</th>
+          <th>Quyền</th>
+          <th>Trạng thái</th>
+          <th>Ngày tạo</th>
+          <th style="width:240px">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody id="tblBody">
+        <tr><td colspan="7"><div class="empty"><div class="empty-ico">⏳</div><div class="empty-txt">Đang tải...</div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modal: Thêm/Sửa người dùng -->
+<div class="modal-bg" id="modalUser">
+  <div class="modal">
+    <h2 id="modalTitle">➕ THÊM NGƯỜI DÙNG</h2>
+    <input type="hidden" id="editId">
+    <div class="mrow">
+      <div class="mfield">
+        <label>Tên đăng nhập *</label>
+        <input type="text" id="fUsername" placeholder="vd: nguyenvana">
+      </div>
+      <div class="mfield">
+        <label>Họ và tên</label>
+        <input type="text" id="fDisplayName" placeholder="vd: Nguyễn Văn A">
+      </div>
+    </div>
+    <div class="mfield" id="fPwdWrap">
+      <label>Mật khẩu *</label>
+      <input type="password" id="fPwd" placeholder="Nhập mật khẩu...">
+    </div>
+    <div class="mfield">
+      <label>Quyền truy cập</label>
+      <select id="fRole">
+        <option value="viewer">👁 Người xem (chỉ xem LED)</option>
+        <option value="admin">🎛 Admin (quay số + xem)</option>
+        <option value="superadmin">👑 Super Admin (toàn quyền)</option>
+      </select>
+    </div>
+    <div class="mfield">
+      <label>Trạng thái</label>
+      <select id="fActive">
+        <option value="1">✅ Hoạt động</option>
+        <option value="0">🔒 Tạm khóa</option>
+      </select>
+    </div>
+    <div class="mbtn-row">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modalUser')">Hủy</button>
+      <button class="mbtn mbtn-primary" onclick="saveUser()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Đổi mật khẩu -->
+<div class="modal-bg" id="modalPwd">
+  <div class="modal">
+    <h2>🔑 ĐỔI MẬT KHẨU</h2>
+    <input type="hidden" id="pwdUserId">
+    <div class="mfield">
+      <label>Người dùng</label>
+      <input type="text" id="pwdUserName" disabled style="opacity:.5;">
+    </div>
+    <div class="mfield">
+      <label>Mật khẩu mới *</label>
+      <input type="password" id="newPwd" placeholder="Nhập mật khẩu mới...">
+    </div>
+    <div class="mfield">
+      <label>Xác nhận mật khẩu *</label>
+      <input type="password" id="confirmPwd" placeholder="Nhập lại mật khẩu...">
+    </div>
+    <div class="mbtn-row">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modalPwd')">Hủy</button>
+      <button class="mbtn mbtn-primary" onclick="savePwd()">✅ Đổi mật khẩu</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_USERS   = 'tlcn_users';
+const STORE_SESSION = 'tlcn_session';
+
+// ===== AUTH =====
+function simpleHash(str){
+  let h=5381;
+  for(let i=0;i<str.length;i++) h=((h<<5)+h)^str.charCodeAt(i);
+  return (h>>>0).toString(36);
+}
+
+function getSession(){
+  try{ return JSON.parse(localStorage.getItem(STORE_SESSION)||'null'); }catch(e){return null;}
+}
+
+function requireAuth(){
+  const s = getSession();
+  if(!s || s.expires < Date.now()){
+    location.href='0_DangNhap.html?from=4_QuanTriNguoiDung.html';
+    return null;
+  }
+  if(s.role !== 'superadmin'){
+    alert('⛔ Bạn không có quyền truy cập trang này.\nChỉ Super Admin mới được phép.');
+    location.href='index.html';
+    return null;
+  }
+  return s;
+}
+
+function doLogout(){
+  if(!confirm('Bạn có chắc muốn đăng xuất?')) return;
+  localStorage.removeItem(STORE_SESSION);
+  location.href='0_DangNhap.html';
+}
+
+// ===== USERS DATA =====
+function getUsers(){
+  try{
+    const d=localStorage.getItem(STORE_USERS);
+    return d?JSON.parse(d):[];
+  }catch(e){return [];}
+}
+
+function saveUsers(users){
+  localStorage.setItem(STORE_USERS, JSON.stringify(users));
+}
+
+function initDefault(){
+  const existing = getUsers();
+  if(existing.length===0){
+    saveUsers([{
+      id:'u001',username:'admin',
+      pwHash:simpleHash('admin123'),
+      role:'superadmin',active:true,
+      displayName:'Quản trị viên',
+      createdAt:Date.now()
+    }]);
+  }
+}
+
+// ===== RENDER =====
+function renderStats(){
+  const users = getUsers();
+  document.getElementById('stTotal').textContent  = users.length;
+  document.getElementById('stActive').textContent = users.filter(u=>u.active).length;
+  document.getElementById('stAdmin').textContent  = users.filter(u=>u.role==='admin'||u.role==='superadmin').length;
+  document.getElementById('stViewer').textContent = users.filter(u=>u.role==='viewer').length;
+}
+
+function renderTable(){
+  const users  = getUsers();
+  const q      = document.getElementById('searchInput').value.toLowerCase();
+  const role   = document.getElementById('filterRole').value;
+  const tbody  = document.getElementById('tblBody');
+  const curSession = getSession();
+
+  let filtered = users.filter(u=>{
+    const matchQ = !q || u.username.toLowerCase().includes(q) || (u.displayName||'').toLowerCase().includes(q);
+    const matchR = !role || u.role===role;
+    return matchQ && matchR;
+  });
+
+  if(filtered.length===0){
+    tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">Không tìm thấy người dùng</div></div></td></tr>`;
+    return;
+  }
+
+  const roleLabel = {superadmin:'Super Admin', admin:'Admin', viewer:'Người xem'};
+  const roleClass = {superadmin:'badge-super', admin:'badge-admin', viewer:'badge-viewer'};
+  const roleIcon  = {superadmin:'👑', admin:'🎛', viewer:'👁'};
+
+  tbody.innerHTML = filtered.map((u,i)=>{
+    const isSelf = curSession && u.id===curSession.userId;
+    const date = new Date(u.createdAt||Date.now());
+    const dateStr = `${date.getDate().toString().padStart(2,'0')}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getFullYear()}`;
+    return `<tr>
+      <td style="color:var(--dim2);font-family:'DM Mono',monospace;font-size:11px;">${i+1}</td>
+      <td>
+        <div style="font-weight:700;font-family:'DM Mono',monospace;font-size:13px;">${escHtml(u.username)}</div>
+        ${isSelf?'<div style="font-size:10px;color:var(--green);margin-top:2px;">● Tài khoản hiện tại</div>':''}
+      </td>
+      <td style="color:var(--dim);">${escHtml(u.displayName||'—')}</td>
+      <td><span class="badge ${roleClass[u.role]}">${roleIcon[u.role]} ${roleLabel[u.role]}</span></td>
+      <td>
+        <span class="status-dot ${u.active?'dot-on':'dot-off'}"></span>
+        <span style="font-size:12px;color:${u.active?'#81C784':'var(--dim2)'};">${u.active?'Hoạt động':'Tạm khóa'}</span>
+      </td>
+      <td style="font-size:11px;color:var(--dim2);font-family:'DM Mono',monospace;">${dateStr}</td>
+      <td>
+        <div class="action-btns">
+          <button class="act act-edit" onclick="openEditModal('${u.id}')">✏ Sửa</button>
+          <button class="act act-pwd"  onclick="openPwdModal('${u.id}','${escHtml(u.username)}')">🔑 Mật khẩu</button>
+          <button class="act act-toggle ${u.active?'':'act-edit'}" onclick="toggleActive('${u.id}')">${u.active?'🔒 Khóa':'🔓 Mở'}</button>
+          ${!isSelf?`<button class="act act-del" onclick="deleteUser('${u.id}')">🗑</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  renderStats();
+}
+
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== MODAL: ADD/EDIT =====
+function openAddModal(){
+  document.getElementById('modalTitle').textContent='➕ THÊM NGƯỜI DÙNG';
+  document.getElementById('editId').value='';
+  document.getElementById('fUsername').value='';
+  document.getElementById('fUsername').disabled=false;
+  document.getElementById('fDisplayName').value='';
+  document.getElementById('fPwd').value='';
+  document.getElementById('fPwdWrap').style.display='block';
+  document.getElementById('fRole').value='viewer';
+  document.getElementById('fActive').value='1';
+  document.getElementById('modalUser').classList.add('open');
+}
+
+function openEditModal(id){
+  const users=getUsers();
+  const u=users.find(x=>x.id===id);
+  if(!u) return;
+  document.getElementById('modalTitle').textContent='✏ SỬA NGƯỜI DÙNG';
+  document.getElementById('editId').value=id;
+  document.getElementById('fUsername').value=u.username;
+  document.getElementById('fUsername').disabled=true;
+  document.getElementById('fDisplayName').value=u.displayName||'';
+  document.getElementById('fPwdWrap').style.display='none';
+  document.getElementById('fRole').value=u.role;
+  document.getElementById('fActive').value=u.active?'1':'0';
+  document.getElementById('modalUser').classList.add('open');
+}
+
+function saveUser(){
+  const id       = document.getElementById('editId').value;
+  const username = document.getElementById('fUsername').value.trim();
+  const dispName = document.getElementById('fDisplayName').value.trim();
+  const pwd      = document.getElementById('fPwd').value;
+  const role     = document.getElementById('fRole').value;
+  const active   = document.getElementById('fActive').value==='1';
+
+  if(!username){ toast('Vui lòng nhập tên đăng nhập','fail'); return; }
+
+  let users=getUsers();
+
+  if(!id){
+    // Add
+    if(!pwd){ toast('Vui lòng nhập mật khẩu','fail'); return; }
+    if(pwd.length<6){ toast('Mật khẩu phải có ít nhất 6 ký tự','fail'); return; }
+    if(users.find(u=>u.username.toLowerCase()===username.toLowerCase())){
+      toast('Tên đăng nhập đã tồn tại','fail'); return;
+    }
+    const newUser={
+      id:'u'+Date.now(),username,pwHash:simpleHash(pwd),
+      displayName:dispName||username,role,active,createdAt:Date.now()
+    };
+    users.push(newUser);
+    toast('Đã thêm người dùng thành công','pass');
+  } else {
+    // Edit
+    const idx=users.findIndex(u=>u.id===id);
+    if(idx<0) return;
+    users[idx].displayName = dispName||users[idx].displayName;
+    users[idx].role   = role;
+    users[idx].active = active;
+    toast('Đã cập nhật người dùng','pass');
+  }
+
+  saveUsers(users);
+  closeModal('modalUser');
+  renderTable();
+}
+
+// ===== MODAL: PASSWORD =====
+function openPwdModal(id, uname){
+  document.getElementById('pwdUserId').value=id;
+  document.getElementById('pwdUserName').value=uname;
+  document.getElementById('newPwd').value='';
+  document.getElementById('confirmPwd').value='';
+  document.getElementById('modalPwd').classList.add('open');
+}
+
+function savePwd(){
+  const id  = document.getElementById('pwdUserId').value;
+  const pwd = document.getElementById('newPwd').value;
+  const cpwd= document.getElementById('confirmPwd').value;
+  if(!pwd){ toast('Vui lòng nhập mật khẩu mới','fail'); return; }
+  if(pwd.length<6){ toast('Mật khẩu phải có ít nhất 6 ký tự','fail'); return; }
+  if(pwd!==cpwd){ toast('Mật khẩu xác nhận không khớp','fail'); return; }
+  const users=getUsers();
+  const idx=users.findIndex(u=>u.id===id);
+  if(idx<0) return;
+  users[idx].pwHash=simpleHash(pwd);
+  saveUsers(users);
+  closeModal('modalPwd');
+  toast('Đã đổi mật khẩu thành công','pass');
+}
+
+// ===== ACTIONS =====
+function toggleActive(id){
+  const users=getUsers();
+  const idx=users.findIndex(u=>u.id===id);
+  if(idx<0) return;
+  const cur=getSession();
+  if(cur && users[idx].id===cur.userId){ toast('Không thể khóa tài khoản đang đăng nhập','fail'); return; }
+  users[idx].active=!users[idx].active;
+  saveUsers(users);
+  renderTable();
+  toast(users[idx].active?'Đã mở khóa tài khoản':'Đã khóa tài khoản','info');
+}
+
+function deleteUser(id){
+  const cur=getSession();
+  if(cur && id===cur.userId){ toast('Không thể xóa tài khoản đang đăng nhập','fail'); return; }
+  if(!confirm('Xác nhận xóa người dùng này?')) return;
+  const users=getUsers().filter(u=>u.id!==id);
+  saveUsers(users);
+  renderTable();
+  toast('Đã xóa người dùng','info');
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+
+// ===== TOAST =====
+let _toastTimer;
+function toast(msg, type='info'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast '+type;
+  el.style.display='block';
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.style.display='none',3200);
+}
+
+// ===== INIT =====
+(function(){
+  const session=requireAuth();
+  if(!session) return;
+  document.getElementById('hdrName').textContent=session.displayName||session.username;
+  initDefault();
+  renderTable();
+
+  // Close modal on backdrop click
+  document.querySelectorAll('.modal-bg').forEach(bg=>{
+    bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('open'); });
+  });
+})();
+</script>
+</body>
+</html>

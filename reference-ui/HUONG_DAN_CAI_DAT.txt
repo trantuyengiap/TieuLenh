@@ -1,0 +1,80 @@
+================================================================
+  TTCIZ · HỆ THỐNG KIỂM TRA TIÊU LỆNH CHỨC DANH  v2.0
+  Hướng dẫn cài đặt trên IIS nội bộ
+================================================================
+
+CẤU TRÚC THƯ MỤC
+─────────────────
+  ttciz_kiemlra\
+  ├── index.html                ← Trang chủ điều hướng
+  ├── 1_Admin_QuaySo.html       ← Màn hình Admin (MC)
+  ├── 2_ManHinhLED.html         ← Màn hình LED fullscreen
+  ├── 3_CapNhatDuLieu.html      ← Cập nhật nhân viên & tiêu lệnh
+  ├── 0_HuongDanSuDung.html     ← Hướng dẫn sử dụng
+  ├── web.config                ← Cấu hình IIS (tự nhận diện)
+  └── HUONG_DAN_CAI_DAT.txt     ← File này
+
+
+CÀI ĐẶT  (3 bước)
+──────────────────
+
+BƯỚC 1 — COPY THƯ MỤC
+  Giải nén zip → Copy toàn bộ thư mục "ttciz_kiemlra" vào:
+    C:\inetpub\wwwroot\ttciz_kiemlra\
+
+BƯỚC 2 — TẠO WEBSITE TRONG IIS MANAGER
+  1. Mở: Start → tìm "IIS" → Internet Information Services (IIS) Manager
+  2. Bên trái: chuột phải "Sites" → Add Website...
+  3. Điền:
+       Site name     :  ttciz
+       Physical path :  C:\inetpub\wwwroot\ttciz_kiemlra
+       Port          :  80  (hoặc 8080 nếu 80 đã dùng)
+  4. Nhấn OK
+
+BƯỚC 3 — PHÂN QUYỀN THƯ MỤC
+  1. Chuột phải thư mục ttciz_kiemlra → Properties → Security
+  2. Edit → Add → gõ "IIS_IUSRS" → OK → tích "Read & Execute" → OK
+
+
+TRUY CẬP
+─────────
+  Trang chủ     :  http://localhost/
+  Từ máy khác   :  http://[IP-máy-chủ]/
+  Màn hình Admin:  http://[IP]/1_Admin_QuaySo.html
+  Màn hình LED  :  http://[IP]/2_ManHinhLED.html
+
+  Tìm IP máy chủ: mở CMD → gõ "ipconfig" → xem IPv4 Address
+
+
+CÁCH SỬ DỤNG ĐÚNG
+──────────────────
+  Trên 1 máy tính, mở 2 tab trình duyệt:
+    Tab 1 → http://[IP]/1_Admin_QuaySo.html  (màn hình MC)
+    Tab 2 → http://[IP]/2_ManHinhLED.html    (kéo sang màn chiếu → F11)
+
+  ⚠ Admin và LED PHẢI cùng trình duyệt, cùng máy để chia sẻ dữ liệu.
+
+
+YÊU CẦU
+────────
+  ✓ Windows Server 2012+ hoặc Windows 10/11
+  ✓ IIS 8.0+  (bật tính năng "Static Content")
+  ✓ Chrome 90+ / Edge 90+ / Firefox 90+
+  ✓ Kết nối internet (để tải Google Fonts và SheetJS từ CDN)
+
+
+KHẮC PHỤC SỰ CỐ
+────────────────
+  ❌ Lỗi 403   → Kiểm tra quyền IIS_IUSRS, bật Static Content
+  ❌ Lỗi 404   → Kiểm tra Physical Path, có web.config chưa
+  ❌ LED không cập nhật → Cả 2 tab phải cùng trình duyệt, cùng máy
+  ❌ Import Excel lỗi  → Cần internet để tải SheetJS từ CDN
+
+
+BẬT STATIC CONTENT (nếu chưa có)
+──────────────────────────────────
+  Control Panel → Programs → Turn Windows features on or off
+  → Internet Information Services → World Wide Web Services
+  → Common HTTP Features → tích "Static Content" → OK
+
+================================================================

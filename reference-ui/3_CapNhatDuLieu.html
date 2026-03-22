@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+// ===== AUTH CHECK =====
+(function(){
+  var REQUIRED_ROLE = 'admin';
+  try{
+    var s = JSON.parse(localStorage.getItem('tlcn_session')||'null');
+    if(!s || s.expires < Date.now()){
+      location.href='0_DangNhap.html?from='+encodeURIComponent(location.pathname.split('/').pop());
+      return;
+    }
+    // Role check
+    var roles = {superadmin:3, admin:2, viewer:1};
+    var userLevel = roles[s.role]||0;
+    var reqLevel  = roles[REQUIRED_ROLE]||1;
+    if(userLevel < reqLevel){
+      alert('⛔ Bạn không có quyền truy cập trang này.');
+      location.href='index.html';
+    }
+  }catch(e){
+    location.href='0_DangNhap.html';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cập Nhật Dữ Liệu · Tiêu Lệnh</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F4F0;--bg2:#FFFFFF;--bg3:#ECEAE4;
+  --txt:#1A1814;--dim:#6B6860;--dim2:#9A9890;
+  --gold:#1B5E20;--gold2:#43A047;--goldbg:#E8F5E9;
+  --border:#D8D4C8;--border2:#E8E4DC;
+  --red:#C0392B;--green:#27AE60;--blue:#2980B9;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
+
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column;}
+.logo{padding:24px 20px;border-bottom:1px solid var(--border2);}
+.logo-sup{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:4px;}
+.logo-main{font-size:17px;font-weight:600;color:var(--txt);line-height:1.2;}
+.logo-sub{font-size:11px;color:var(--dim2);margin-top:2px;}
+.nav{flex:1;padding:12px 10px;}
+.nitem{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--dim);transition:all .15s;margin-bottom:2px;}
+.nitem:hover{background:var(--bg3);color:var(--txt);}
+.nitem.on{background:var(--goldbg);color:var(--gold);font-weight:600;}
+.nitem .ni{font-size:15px;}
+.sf{padding:16px 20px;border-top:1px solid var(--border2);}
+.save-btn{width:100%;padding:10px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.3px;}
+.save-btn:hover{background:var(--gold2);}
+
+/* Main */
+.main{padding:32px 36px;overflow-y:auto;max-height:100vh;}
+.section{display:none;}
+.section.on{display:block;}
+
+/* Page header */
+.ph{margin-bottom:28px;}
+.ph h1{font-size:22px;font-weight:600;margin-bottom:4px;}
+.ph p{font-size:13px;color:var(--dim);}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;background:var(--bg);}
+.card-title{font-size:13px;font-weight:600;letter-spacing:.2px;}
+.card-body{padding:20px;}
+
+/* Toolbar */
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
+.tb-search{flex:1;min-width:200px;position:relative;}
+.tb-search input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg2);color:var(--txt);outline:none;transition:border-color .15s;}
+.tb-search input:focus{border-color:var(--gold);}
+.tb-search::before{content:'🔍';position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;}
+.btn{padding:9px 16px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--gold);color:#fff;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-danger{background:rgba(192,57,43,.1);color:var(--red);border:1px solid rgba(192,57,43,.2);}
+.btn-danger:hover{background:rgba(192,57,43,.18);}
+.btn-ghost{background:var(--bg3);color:var(--dim);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--txt);}
+.btn-small{padding:5px 10px;font-size:12px;}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{background:var(--bg);padding:10px 14px;text-align:left;font-weight:600;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--border2);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--bg3);}
+.tbl input,
+.tbl select{width:100%;padding:6px 10px;border:1px solid transparent;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;background:transparent;color:var(--txt);transition:all .15s;outline:none;}
+.tbl input:focus,.tbl select:focus{border-color:var(--gold);background:var(--bg2);box-shadow:0 0 0 3px rgba(27,94,32,.1);}
+.tbl select{cursor:pointer;}
+.id-chip{display:inline-block;background:var(--goldbg);border:1px solid rgba(27,94,32,.25);color:var(--gold);font-family:'DM Mono',monospace;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;}
+.row-actions{display:flex;gap:6px;align-items:center;justify-content:flex-end;}
+.del-btn{width:28px;height:28px;border-radius:6px;border:1px solid rgba(192,57,43,.2);background:rgba(192,57,43,.06);color:var(--red);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.del-btn:hover{background:rgba(192,57,43,.15);}
+
+/* Add row */
+.add-row-btn{width:100%;padding:10px;border:1px dashed var(--border);border-radius:8px;background:transparent;color:var(--dim2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .15s;margin-top:8px;}
+.add-row-btn:hover{border-color:var(--gold);color:var(--gold);background:var(--goldbg);}
+
+/* TL editor */
+.tl-select-area{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.tl-person-sel{flex:1;min-width:200px;}
+label.fl{display:block;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
+select.full{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg2);color:var(--txt);outline:none;cursor:pointer;}
+select.full:focus{border-color:var(--gold);}
+
+.tl-lines{display:flex;flex-direction:column;gap:6px;}
+.tl-line{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;transition:border-color .15s;}
+.tl-line:focus-within{border-color:rgba(27,94,32,.4);background:var(--goldbg);}
+.tl-line-num{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);font-weight:500;min-width:24px;text-align:center;}
+.tl-line input{flex:1;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--txt);outline:none;padding:2px 0;}
+.tl-line-del{background:transparent;border:none;color:var(--dim2);font-size:14px;cursor:pointer;padding:2px 4px;border-radius:4px;transition:color .15s;flex-shrink:0;}
+.tl-line-del:hover{color:var(--red);}
+
+/* Import/export */
+.ie-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.ie-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.ie-title{font-size:14px;font-weight:600;margin-bottom:8px;}
+.ie-desc{font-size:12px;color:var(--dim);margin-bottom:14px;}
+textarea.mono{width:100%;font-family:'DM Mono',monospace;font-size:11px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--txt);resize:vertical;outline:none;min-height:120px;line-height:1.5;}
+textarea.mono:focus{border-color:var(--gold);}
+
+/* Badge */
+.badge{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.5px;padding:2px 8px;border-radius:10px;}
+.badge-count{background:rgba(27,94,32,.12);color:var(--gold);}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{background:var(--green);color:#fff;}
+.toast.err{background:var(--red);color:#fff;}
+.toast.inf{background:var(--gold);color:#fff;}
+
+@media(max-width:700px){.app{grid-template-columns:1fr;}.sidebar{grid-row:auto;max-height:240px;overflow-y:auto;}.ie-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<style>
+.home-btn{
+  position:fixed;top:14px;left:14px;z-index:9999;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 18px;
+  background:rgba(27,94,32,.92);
+  border:1px solid rgba(67,160,71,.5);
+  border-radius:30px;
+  color:#fff;font-size:11px;font-weight:700;
+  text-decoration:none;
+  font-family:'Be Vietnam Pro','Segoe UI',sans-serif;
+  letter-spacing:.5px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 3px 14px rgba(0,0,0,.35);
+  transition:all .2s;
+}
+.home-btn:hover{
+  background:rgba(27,94,32,1);
+  border-color:rgba(67,160,71,.8);
+  box-shadow:0 4px 20px rgba(27,94,32,.5);
+  transform:translateY(-1px);
+}
+.home-btn svg{width:14px;height:14px;flex-shrink:0;}
+</style>
+<a href="index.html" class="home-btn">
+  <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h4a1 1 0 001-1v-3h2v3a1 1 0 001 1h4a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+  Trang chủ
+</a>
+
+<div class="toast" id="toast"></div>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-sup">TTCIZ</div>
+      <div class="logo-main">Cập Nhật Dữ Liệu</div>
+      <div class="logo-sub">Quản lý tiêu lệnh</div>
+    </div>
+    <nav class="nav">
+      <div class="nitem on" onclick="gotoSec('emp',this)"><span class="ni">👥</span>Danh sách nhân viên</div>
+      <div class="nitem" onclick="gotoSec('tl',this)"><span class="ni">📝</span>Tiêu lệnh từng người</div>
+      <div class="nitem" onclick="gotoSec('ie',this)"><span class="ni">↕️</span>Import / Export</div>
+      <div class="nitem" onclick="gotoSec('reset',this)"><span class="ni">⚙️</span>Cài đặt & Reset</div>
+    </nav>
+    <div class="sf">
+      <button class="save-btn" onclick="saveAll()">💾 Lưu Tất Cả</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- EMPLOYEES -->
+    <section class="section on" id="sec-emp">
+      <div class="ph">
+        <h1>Danh Sách Nhân Viên</h1>
+        <p>Thêm, sửa, xóa nhân viên trong danh sách kiểm tra tiêu lệnh</p>
+      </div>
+      <div class="toolbar">
+        <div class="tb-search"><input type="text" placeholder="Tìm theo tên, mã ID..." oninput="filterEmp(this.value)" id="empSearch"></div>
+        <button class="btn btn-primary" onclick="addEmpRow()">+ Thêm nhân viên</button>
+        <span class="badge badge-count" id="empCount">0 nhân viên</span>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th style="width:50px">STT</th>
+              <th style="width:90px">Mã ID</th>
+              <th>Họ và tên</th>
+              <th>Chức vụ</th>
+              <th style="width:80px;text-align:center">Tổng TL</th>
+              <th style="width:80px;text-align:center">Chỉ định TL</th>
+              <th style="width:60px"></th>
+            </tr>
+          </thead>
+          <tbody id="empTable"></tbody>
+        </table>
+        <div style="padding:12px 20px;">
+          <button class="add-row-btn" onclick="addEmpRow()">+ Thêm hàng mới</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIEU LENH -->
+    <section class="section" id="sec-tl">
+      <div class="ph">
+        <h1>Tiêu Lệnh Từng Người</h1>
+        <p>Chọn nhân viên để xem và chỉnh sửa nội dung tiêu lệnh</p>
+      </div>
+      <div class="tl-select-area">
+        <div class="tl-person-sel">
+          <label class="fl">Chọn nhân viên</label>
+          <select class="full" id="tlPersonSel" onchange="loadTLEditor()">
+            <option value="">-- Chọn nhân viên --</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;">
+          <button class="btn btn-primary" onclick="addTLLine()">+ Thêm dòng</button>
+          <button class="btn btn-ghost" onclick="saveTLForPerson()">💾 Lưu tiêu lệnh</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title" id="tlEditorTitle">Nội dung tiêu lệnh</span>
+          <span class="badge badge-count" id="tlLineCount">0 dòng</span>
+        </div>
+        <div class="card-body">
+          <div class="tl-lines" id="tlLines">
+            <div style="text-align:center;color:var(--dim2);padding:32px;font-size:13px;">Chọn nhân viên để xem tiêu lệnh</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPORT/EXPORT -->
+    <section class="section" id="sec-ie">
+      <div class="ph">
+        <h1>Import / Export</h1>
+        <p>Xuất dữ liệu ra JSON để backup, hoặc nhập lại khi cần</p>
+      </div>
+      <div class="ie-row">
+        <div class="ie-box">
+          <div class="ie-title">📤 Export Nhân Viên</div>
+          <div class="ie-desc">Xuất danh sách nhân viên hiện tại ra JSON</div>
+          <button class="btn btn-primary" onclick="exportPeople()" style="margin-bottom:12px;">Xuất JSON</button>
+          <textarea class="mono" id="exportPeopleBox" placeholder="Nhấn Xuất JSON..." readonly rows="6"></textarea>
+        </div>
+        <div class="ie-box">
+          <div class="ie-title">📥 Import Nhân Viên</div>
+          <div class="ie-desc">Dán JSON vào đây để nhập danh sách mới</div>
+          <button class="btn btn-primary" onclick="importPeople()" style="margin-bottom:12px;">Nhập JSON</button>
+          <textarea class="mono" id="importPeopleBox" placeholder='[{"stt":1,"id":"Z0001","hoTen":"Nguyễn Văn A","chucVu":"Trưởng phòng","tongSo":10}]' rows="6"></textarea>
+        </div>
+        <div class="ie-box">
+          <div class="ie-title">📤 Export Tiêu Lệnh</div>
+          <div class="ie-desc">Xuất toàn bộ tiêu lệnh ra JSON</div>
+          <button class="btn btn-primary" onclick="exportTL()" style="margin-bottom:12px;">Xuất JSON</button>
+          <textarea class="mono" id="exportTLBox" placeholder="Nhấn Xuất JSON..." readonly rows="6"></textarea>
+        </div>
+        <div class="ie-box">
+          <div class="ie-title">📥 Import Tiêu Lệnh</div>
+          <div class="ie-desc">Dán JSON để nhập tiêu lệnh mới (toàn bộ)</div>
+          <button class="btn btn-primary" onclick="importTL()" style="margin-bottom:12px;">Nhập JSON</button>
+          <textarea class="mono" id="importTLBox" placeholder='{"Z0001":{"1":"Tiêu lệnh 1","2":"Tiêu lệnh 2"}}' rows="6"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESET -->
+    <section class="section" id="sec-reset">
+      <div class="ph">
+        <h1>Cài Đặt & Reset</h1>
+        <p>Quản lý dữ liệu lưu trữ</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:560px;">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Xóa Lịch Sử Kiểm Tra</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--dim);margin-bottom:14px;">Xóa toàn bộ lịch sử quay số và thống kê. Dữ liệu nhân viên và tiêu lệnh không bị ảnh hưởng.</p>
+            <button class="btn btn-danger" onclick="clearHistory()">🗑 Xóa lịch sử & thống kê</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Khôi Phục Dữ Liệu Mặc Định</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--dim);margin-bottom:14px;">Reset nhân viên và tiêu lệnh về dữ liệu gốc từ file Excel ban đầu.</p>
+            <button class="btn btn-danger" onclick="resetToDefault()">↺ Khôi phục dữ liệu mặc định</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Thông Tin Lưu Trữ</span></div>
+          <div class="card-body" id="storageInfo"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ===== STORE KEYS =====
+const KP='tlcn_people', KTL='tlcn_tieulenh', KH='tlcn_history', KS='tlcn_stats';
+
+// ===== DEFAULT DATA =====
+const DEFAULT_PEOPLE=[{"stt":1,"id":"Z0028","hoTen":"Tô Thị Mỹ","chucVu":"Phó Tổng Giám đốc thường trực - TCT BĐS CN","tongSo":10,"chiDinh":null,"soTL":null},{"stt":2,"id":"Z0107","hoTen":"Lê Quang Vũ","chucVu":"Phó Tổng Giám đốc - TCT BĐS CN","tongSo":10,"chiDinh":null,"soTL":null},{"stt":3,"id":"Z0141","hoTen":"Đinh Thị Ngọc Trang","chucVu":"Phó Tổng Giám đốc - TCT BĐS CN","tongSo":10,"chiDinh":null,"soTL":null},{"stt":4,"id":"Z0452","hoTen":"Nguyễn Thị Nghi","chucVu":"Giám Đốc Khối Kinh doanh Kho vận - TCT BĐS CN","tongSo":10,"chiDinh":null,"soTL":null},{"stt":5,"id":"Z0451","hoTen":"Nguyễn Thái Sơn","chucVu":"Giám Đốc Khối Dự án - TCT BĐS CN","tongSo":10,"chiDinh":null,"soTL":null},{"stt":6,"id":"Z0453","hoTen":"Lê Văn Lộc","chucVu":"Giám Đốc Khối Hỗ trợ - TCT BĐS CN","tongSo":10,"chiDinh":null,"soTL":null},{"stt":7,"id":"Z0012","hoTen":"Trần Thị Sen","chucVu":"Kế toán trưởng - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":8,"id":"Z0570","hoTen":"Nguyễn Bảo Luân","chucVu":"Quyền Phó Chánh Văn phòng - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":9,"id":"Z0142","hoTen":"Lê Hoàng Vũ","chucVu":"Trưởng Phòng HCQT - TTCIZ","tongSo":10,"chiDinh":2,"soTL":10},{"stt":10,"id":"Z0394","hoTen":"Lê Nguyên Thanh Vân","chucVu":"Trưởng Phòng Pháp chế - TTCIZ","tongSo":8,"chiDinh":null,"soTL":null},{"stt":11,"id":"Z0446","hoTen":"Lưu Đặng Mỹ Quỳnh","chucVu":"Trưởng Phòng KTNB - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":12,"id":"Z0255","hoTen":"Lý Thành Huy","chucVu":"Trưởng Phòng Kinh doanh BĐS CN - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":13,"id":"Z0007","hoTen":"Hà Xuân Thảo","chucVu":"Trưởng Phòng Nhân sự - TTCIZ","tongSo":9,"chiDinh":null,"soTL":null},{"stt":14,"id":"Z0092","hoTen":"Đỗ Minh Hải","chucVu":"Trưởng Phòng QLDA - TTCIZ","tongSo":9,"chiDinh":null,"soTL":null},{"stt":15,"id":"Z0140","hoTen":"Nguyễn Minh Trang","chucVu":"Trưởng Phòng CSKH BĐS CN - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":16,"id":"Z0014","hoTen":"Võ Hùng Sơn","chucVu":"Trưởng Phòng Quản lý Điện - TTCIZ","tongSo":6,"chiDinh":null,"soTL":null},{"stt":17,"id":"Z0110","hoTen":"Trần Minh Tân","chucVu":"Trưởng Phòng QLCN&XLNT - TTCIZ","tongSo":4,"chiDinh":null,"soTL":null},{"stt":18,"id":"Z0086","hoTen":"Nguyễn Ngọc Duy","chucVu":"Trưởng Phòng QLCX&DT - TTCIZ","tongSo":9,"chiDinh":null,"soTL":null},{"stt":19,"id":"Z0412","hoTen":"Võ Văn Trung","chucVu":"Trưởng Phòng CNTT - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":20,"id":"Z0370","hoTen":"Phạm Khánh Nhi","chucVu":"Trưởng Phòng Tài chính Kế hoạch - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":21,"id":"Z0098","hoTen":"Đặng Văn Hưng","chucVu":"Quản đốc nhà máy nước - TTCIZ","tongSo":5,"chiDinh":null,"soTL":null},{"stt":22,"id":"Z0409","hoTen":"Lê Thanh Tùng","chucVu":"Chuyên viên Quản lý Thương hiệu - TTCIZ","tongSo":9,"chiDinh":null,"soTL":null},{"stt":23,"id":"Z0119","hoTen":"Trần Thị Loan","chucVu":"Chuyên viên cấp trung kế toán - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":24,"id":"Z0438","hoTen":"Đặng Tấn Đạt","chucVu":"Chuyên viên Cấp trung KTNB - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":25,"id":"Z0286","hoTen":"Nguyễn Thị Ngọc Phượng","chucVu":"Nhân viên Môi trường - An toàn VSLĐ - TTCIZ","tongSo":5,"chiDinh":null,"soTL":null},{"stt":26,"id":"Z0291","hoTen":"Đặng Trần Nhật Minh","chucVu":"Đội trưởng Đội vận hành nước - TTCIZ","tongSo":5,"chiDinh":null,"soTL":null},{"stt":27,"id":"Z0500","hoTen":"Trương Thanh Vân Anh","chucVu":"Nhân viên Kinh doanh - TTCIZ","tongSo":9,"chiDinh":null,"soTL":null},{"stt":28,"id":"Z0111","hoTen":"Võ Văn Để","chucVu":"Trưởng Bộ phận Quản lý Duy tu - Hạ tầng - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":29,"id":"Z0504","hoTen":"Trần Phương Tín","chucVu":"Chuyên viên Kỹ thuật xây dựng - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":30,"id":"Z0247","hoTen":"Võ Hùng Cường","chucVu":"TBP Quản lý Hệ thống điện - TTCIZ","tongSo":6,"chiDinh":null,"soTL":null},{"stt":31,"id":"Z0499","hoTen":"Nguyễn Hồng Đào","chucVu":"Nhân viên Tổng Hợp - TTCIZ","tongSo":6,"chiDinh":2,"soTL":5},{"stt":32,"id":"Z0245","hoTen":"Trần Quang Nho","chucVu":"Trưởng Bộ phận thi công - TTCIZ","tongSo":9,"chiDinh":null,"soTL":null},{"stt":33,"id":"Z0335","hoTen":"Phan Thị Hoài Chung","chucVu":"Chuyên viên Cấp trung Dự án","tongSo":9,"chiDinh":null,"soTL":null},{"stt":34,"id":"Z0414","hoTen":"Trần Tuyến Giáp","chucVu":"Chuyên viên Công nghệ thông tin","tongSo":9,"chiDinh":null,"soTL":null},{"stt":35,"id":"Z0237","hoTen":"Phạm Thị Hoàng Nga","chucVu":"Chuyên viên mua hàng","tongSo":9,"chiDinh":2,"soTL":7},{"stt":36,"id":"Z0549","hoTen":"Huỳnh Lê Nhi","chucVu":"Trưởng Bộ phận Quản lý Thương hiệu - TTCIZ","tongSo":10,"chiDinh":null,"soTL":null},{"stt":37,"id":"Z0201","hoTen":"Nguyễn Vũ An Giang","chucVu":"Trưởng Phòng HCNS - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":38,"id":"Z0350","hoTen":"Trần Minh Chánh","chucVu":"Trưởng Phòng Tài chính - Kế toán - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":39,"id":"Z0696","hoTen":"Nguyễn Minh Tùng","chucVu":"Giám Đốc CN Bình Dương - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":40,"id":"Z0018","hoTen":"Lê Ngọc Long","chucVu":"Giám Đốc CN Nam Sài Gòn - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":41,"id":"Z0035","hoTen":"Lê Hoàng Phong","chucVu":"Giám Đốc CN Bến Kéo - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":42,"id":"Z0159","hoTen":"Bùi Quốc Hòa","chucVu":"Phó Phòng Tài chính - Kế toán - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":43,"id":"Z0189","hoTen":"Nguyễn Bá Thi","chucVu":"Phó Giám đốc CN Bình Dương - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":44,"id":"Z0257","hoTen":"Mai Thanh Bình","chucVu":"Phó Giám đốc CN Nam Sài Gòn - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":45,"id":"Z0391","hoTen":"Trần Thị Thanh Hiên","chucVu":"Trưởng Bộ phận Pháp chế - Công ty Đặng Huỳnh","tongSo":8,"chiDinh":null,"soTL":null},{"stt":46,"id":"Z0745","hoTen":"Trần Huy Hoàng","chucVu":"Trưởng Bộ phận Hành chính - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":2,"soTL":8},{"stt":47,"id":"Z0551","hoTen":"Nguyễn Thành Nhu","chucVu":"Trưởng Bộ phận Xây dựng cơ bản - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":48,"id":"Z0564","hoTen":"Nguyễn Đức Anh","chucVu":"Chuyên viên Kế hoạch - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":49,"id":"Z0612","hoTen":"Nguyễn Thị Kim Ly","chucVu":"Trưởng Bộ phận Hỗ trợ Dự án - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":50,"id":"Z0637","hoTen":"Phạm Kế Chí","chucVu":"Chuyên viên Kỹ thuật - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":51,"id":"Z0021","hoTen":"Nguyễn Thanh Tùng","chucVu":"Trưởng Bộ phận Kinh doanh - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":52,"id":"Z0545","hoTen":"Nguyễn Xuân Thiện","chucVu":"Chuyên viên Kinh doanh - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":53,"id":"A0499","hoTen":"Đoàn Văn Tân","chucVu":"Nhân viên Hành chính - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":54,"id":"Z0598","hoTen":"Nguyễn Hồ Cẩm Giang","chucVu":"Nhân viên Tổng hợp - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":55,"id":"A0453","hoTen":"Phạm Nhựt Xuân","chucVu":"Trưởng Bộ phận Kinh doanh - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":56,"id":"Z0735","hoTen":"Phan Trần Tuấn Huy","chucVu":"Nhân viên Kinh doanh - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":57,"id":"Z0676","hoTen":"Phùng Quốc Thắng","chucVu":"Nhân viên Kinh doanh - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":59,"id":"Z0263","hoTen":"Phan Duy Thanh","chucVu":"Quản lý kho - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":60,"id":"Z0315","hoTen":"Lương Đình Nghĩa","chucVu":"Quản lý kho - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":61,"id":"Z0413","hoTen":"Bùi Quốc Trung","chucVu":"Quản lý kho - Công ty Đặng Huỳnh","tongSo":10,"chiDinh":null,"soTL":null},{"stt":62,"id":"TCC33","hoTen":"Nguyễn Anh Tuấn","chucVu":"Phó Giám đốc - Công ty Tân Hội","tongSo":10,"chiDinh":null,"soTL":null},{"stt":63,"id":"TCC05","hoTen":"Nguyễn Ngọc Như Ý","chucVu":"Kế toán trưởng - Công ty Tân Hội","tongSo":10,"chiDinh":null,"soTL":null},{"stt":64,"id":"TCC07","hoTen":"Nguyễn Thị Phượng","chucVu":"Trưởng Bộ phận Kinh doanh - Công ty Tân Hội","tongSo":10,"chiDinh":null,"soTL":null},{"stt":65,"id":"TCC29","hoTen":"Thái Thị Quỳnh Trang","chucVu":"TBP. Hành Chính Nhân sự - Công ty Tân Hội","tongSo":10,"chiDinh":2,"soTL":3},{"stt":66,"id":"TCC22","hoTen":"Cao Đình Duy","chucVu":"Trưởng Bộ phận Dịch vụ hạ tầng - Công ty Tân Hội","tongSo":10,"chiDinh":null,"soTL":null},{"stt":67,"id":"TCC24","hoTen":"Trần Thị Quỳnh Như","chucVu":"Chuyên viên Hành chính - Công ty Tân Hội","tongSo":10,"chiDinh":null,"soTL":null}];
+
+const DEFAULT_TL={"Z0031": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Dám chịu trách nhiệm; Luôn là ngọn cờ đầu, đại sứ thương hiệu tại cơ sở", "4": "Dẫn dắt, giám sát các hoạt động, tạo điều kiện để HĐQT, BĐH hoạt động hiệu quả", "5": "Định hướng chiến lược, hoạt động lõi, các giải pháp, kế hoạch dự phòng phù hợp", "6": "Quản trị thanh khoản; Quản trị hoạt động đầu tư chuyên nghiệp, trách nhiệm", "7": "Quản trị chi phí - rủi ro; Quản trị tài sản hiệu quả - gia tăng giá trị tích sản", "8": "Xây dựng, duy trì quan hệ, hợp tác hiệu quả trong pháp lý, tài chính, đàm phán", "9": "Hạt nhân của những người tài, tập hợp, đào tạo, phát triển đội ngũ, kế thừa", "10": "Số hóa bản thân, số hóa công việc, định lượng cho mọi tác vụ và kỹ năng"}, "Z0445": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Dám chịu trách nhiệm; Luôn là ngọn cờ đầu, đại sứ thương hiệu tại cơ sở", "4": "Dẫn dắt, giám sát các hoạt động, tạo điều kiện để HĐQT, BĐH hoạt động hiệu quả", "5": "Định hướng chiến lược, hoạt động lõi, các giải pháp, kế hoạch dự phòng phù hợp", "6": "Quản trị thanh khoản; Quản trị hoạt động đầu tư chuyên nghiệp, trách nhiệm", "7": "Quản trị chi phí - rủi ro; Quản trị tài sản hiệu quả - gia tăng giá trị tích sản", "8": "Xây dựng, duy trì quan hệ, hợp tác hiệu quả trong pháp lý, tài chính, đàm phán", "9": "Hạt nhân của những người tài, tập hợp, đào tạo, phát triển đội ngũ, kế thừa", "10": "Số hóa bản thân, số hóa công việc, định lượng cho mọi tác vụ và kỹ năng"}, "Z0377": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Dám chịu trách nhiệm; Luôn là ngọn cờ đầu, đại sứ thương hiệu tại cơ sở", "4": "Đảm bảo hệ thống quản trị luôn được rà soát; Điều hành xuyên suốt, hiệu quả", "5": "Định hướng hoạt động lõi, các giải pháp thực thi chiến lược hiệu quả", "6": "Quản trị thanh khoản; Quản lý hoạt động đầu tư chuyên nghiệp, trách nhiệm", "7": "Quản trị chi phí - rủi ro; Quản lý tài sản hiệu quả - gia tăng giá trị tích sản", "8": "Nắm bắt xu thế, lựa chọn quyết sách kinh doanh đáp ứng định hướng chiến lược", "9": "Xây dựng và duy trì các mối quan hệ cơ quan ban ngành, quan hệ hợp tác", "10": "Số hóa bản thân, số hóa công việc, định lượng cho mọi tác vụ và kỹ năng"}, "Z0028": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Dám chịu trách nhiệm; Luôn là ngọn cờ đầu, đại sứ thương hiệu tại cơ sở", "4": "Hỗ trợ Tổng Giám đốc quản lý và điều hành mọi hoạt động chung của Công ty", "5": "Điều hành và chịu trách nhiệm kết quả hoạt động của Khối kinh doanh BĐS CN", "6": "Hoạch định kế hoạch chiến lược kinh doanh dài, trung và ngắn hạn theo chiến lược Tổng Công ty", "7": "Nắm bắt xu thế thị trường, lựa chọn quyết sách kinh doanh phù hợp định hướng chiến lược", "8": "Tham mưu cho Cấp thẩm quyền các vấn đề thuộc chức năng, nhiệm vụ của Khối", "9": "Ký kết các hợp đồng và văn bản có liên quan theo quy định của hệ thống phân quyền", "10": "Xây dựng môi trường làm việc gắn kết, trách nhiệm và sáng tạo"}, "Z0107": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Đảm bảo hệ thống quản trị luôn được rà soát; Điều hành xuyên suốt, hiệu quả", "4": "Đảm bảo công việc Khối DVHT thực hiện theo mục tiêu và chiến lược Công ty", "5": "Đảm bảo thống điện, nước, hạ tầng KCN hoạt động ổn định, đúng tiêu chuẩn", "6": "Các sản phẩm, dịch vụ được hoàn thành và bàn giao đến Khách hàng đúng tiến độ", "7": "Các hoạt động liên quan đến môi trường trong KCN được thực hiện và quản lý tốt", "8": "Xây dựng đội ngũ Nhân viên kỹ thuật có năng lực đáp ứng được mục tiêu và chiến lược Công ty", "9": "Gia tăng tối đa mức độ thỏa mãn của khách hàng", "10": "Xây dựng môi trường làm việc gắn kết, trách nhiệm và sáng tạo"}, "Z0141": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Pháp luật và quy định nội bộ Công ty", "3": "Bảo mật thông tin, không nhận hối lộ", "4": "Sử dụng thời gian và tài sản Công ty đúng mục đích và hiệu quả", "5": "Uy tín, trách nhiệm, tôn trọng lãnh đạo, đồng nghiệp, đối tác", "6": "Tham mưu, thu xếp hiệu quả, tối ưu nguồn vốn trong và ngoài nước", "7": "Tham mưu, đề xuất tối ưu hoạt động đầu tư, phân phối lợi nhuận, M&A, Tái cấu trúc tài chính, Đại chúng, IPO, Niêm yết", "8": "Tham mưu, giám sát chiến lược vốn, chiến lược kinh doanh; kiểm soát kế hoạch ngân sách thông qua KPI", "9": "Tham mưu, kiểm soát tối ưu sử dụng tài sản, nguồn vốn, Quản trị các chỉ số tài chính; tối ưu nộp ngân sách nhà nước", "10": "Đào tạo, quản lý và phát triển đội ngũ"}, "Z0452": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Dám chịu trách nhiệm; Luôn là ngọn cờ đầu, đại sứ thương hiệu tại cơ sở", "4": "Đảm bảo công việc của Khối KD luôn được rà soát, điều hành xuyên suốt, hiệu quả", "5": "Định hướng hoạt động lõi, phát triển mở rộng thị trường kinh doanh", "6": "Quản lý đội ngũ kinh doanh chuyên nghiệp, trách nhiệm", "7": "Kiểm soát chi phí- rủi ro, khai thác tài sản Công ty hiệu quả, gia tăng giá trị tích sản", "8": "Nắm bắt xu thế, lựa chọn quyết sách kinh doanh phù hợp với định hướng chiến lược", "9": "Xây dựng và duy trì các mối quan hệ cơ quan ban ngành, quan hệ hợp tác", "10": "Số hóa bản thân, số hóa công việc, định lượng trong mọi tác vụ và kỷ năng"}, "Z0451": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Đảm bảo dự án tuân thủ đúng tiêu chuẩn, qui chuẩn xây dựng hiện hành", "4": "Đảm bảo pháp lý dự án phải luôn đúng và đủ", "5": "Đảm bảo dự án phải tối ưu về thiết kế và hợp lý về chi phí đầu tư", "6": "Đảm bảo bàn giao vận hành dự án phải đúng tiến độ cam kết", "7": "Xây dựng môi trường làm việc gắn kết, trách nhiệm và tư duy sáng tạo", "8": "Xây dựng đội ngũ có đầy đủ năng lực chuyên môn và năng lực hành vi", "9": "Xây dựng văn hoá công trường: Lao động phải an toàn, môi trường phải sạch sẽ", "10": "Gia tăng tối đa mức độ thỏa mãn của khách hàng"}, "Z0453": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Dám chịu trách nhiệm; Luôn là ngọn cờ đầu, đại sứ thương hiệu tại cơ sở", "4": "Đảm bảo công việc Khối hỗ trợ thực hiện theo mục tiêu và chiến lược Công ty", "5": "Đáp ứng và giám sát các hoạt động hỗ trợ đối với Khách hàng", "6": "Đảm bảo việc sử dụng hiệu quả các nguồn lực và tài nguyên của Khối Hỗ trợ", "7": "Phối hợp hiệu quả giữa Khối với các Phòng chức năng trong việc hỗ trợ Khách hàng", "8": "Duy trì mối quan hệ tốt với Cơ quan Nhà nước/ Truyền thông, Báo chí liên quan", "9": "Xây dựng đội ngũ CBNV có năng lực đáp ứng được mục tiêu chiến lược Công ty", "10": "Xây dựng môi trường làm việc gắn kết, trách nhiệm và sáng tạo"}, "Z0012": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Pháp luật và quy định nội bộ Công ty", "3": "Bảo mật thông tin, không nhận hối lộ", "4": "Sử dụng thời gian và tài sản Công ty đúng mục đích và hiệu quả", "5": "Uy tín, trách nhiệm, tôn trọng lãnh đạo, đồng nghiệp, đối tác", "6": "Tuân thủ quy định liên quan chuẩn mực, chế độ kế toán", "7": "Tuân thủ quy định liên quan đến các loại phí, thuế", "8": "Kiểm tra tính hợp lệ, hợp lý của các chứng từ phát sinh", "9": "Sử dụng nguồn tiền phù hợp và hiệu quả", "10": "Tuân thủ quy chế quản lý tài chính và văn bản lập quy Công ty"}, "Z0570": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ nội bộ", "3": "Số liệu chính xác – kịp thời – trọng tâm", "4": "Thời gian là tài sản, sử dụng cho hiệu quả", "5": "Tổ chức công việc chặt chẽ, chiến lược rõ ràng", "6": "Quán xuyến cấp dưới, chịu trách nhiệm trước cấp trên", "7": "Theo sát chỉ đạo, tham mưu hiệu quả", "8": "Đào tạo nhân sự vững mạnh, luôn mở rộng kiến thức và nâng cao kỹ năng mềm", "9": "Tác phong chuẩn chỉnh, phát ngôn chuẩn mực, không tư lợi, không sai sự thật", "10": "Học kỹ các luật doanh nghiệp, chứng khoán, các luật liên quan đến HĐQT và Công ty"}, "Z0142": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật.", "6": "Lập kế hoạch, tổ chức, điều phối và kiểm soát các hoạt động chuyên môn", "7": "Huấn luyện, đào tạo đội ngũ nhân sự kế thừa", "8": "Rà soát, hiệu chỉnh VBLQ", "9": "Báo cáo đầy đủ, kịp thời, chính xác", "10": "Tham mưu, đề xuất giải pháp cải tiến công việc"}, "Z0394": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật", "3": "Hành động vì lợi ích Công ty/ Tập đoàn", "4": "Luôn làm điều đúng", "5": "Chấp hành nghiêm chỉnh quy định của Công ty", "6": "Trợ giúp pháp lý bằng sự tận tâm, vô tư và trách nhiệm", "7": "Vận dụng pháp luật hiệu quả và cảnh báo rủi ro pháp lý kịp thời", "8": "Chủ động, quyết liệt, trách nhiệm trong công việc"}, "Z0446": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định pháp luật, tổ chức và đạo đức nghề nghiệp", "3": "Kiểm soát độc lập, trách nhiệm, khách quan", "4": "Bảo mật thông tin, truyền thông hiệu quả", "5": "Kiểm toán nội bộ trên cơ sở định hướng rủi ro", "6": "Tổ chức, triển khai chương trình kiểm toán nội bộ toàn diện hàng năm", "7": "Đảm bảo chất lượng kiểm toán nội bộ", "8": "Xây dựng đội ngũ kiểm toán chuyên nghiệp và tối ưu chi phí", "9": "Tham mưu cải tiến quy trình vận hành và tối ưu hóa hệ thống kiểm soát nội bộ", "10": "Tư vấn và cảnh báo rủi ro thông qua kiểm tra, giám sát"}, "Z0255": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Tổ chức, Pháp luật", "3": "Đoàn kết - Trung thực - Chính xác - Minh bạch", "4": "Tư duy công nghiệp - Hành vi chuyên nghiệp", "5": "Giao tiếp chuẩn mực - Ứng xử văn minh", "6": "Xây dựng sản phẩm dựa trên nhu cầu", "7": "Lấy đạo đức kinh doanh làm nền tảng", "8": "Lấy mục tiêu kinh doanh để hành động", "9": "Lấy hiệu quả kinh doanh làm động lực", "10": "Hài hòa lợi ích tổ chức với khách hàng và các bên liên quan"}, "Z0007": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ", "3": "Tôn trọng, lịch sự, chấp nhận sự khác biệt, đặt lợi ích TTC lên trên", "4": "Hợp tác, giao tiếp chuyên nghiệp – Bảo mật thông tin", "5": "Trách nhiệm, uy tín - Cầu thị để phát triển", "6": "Quản lý, giám sát, kiểm tra các hoạt động chuyên môn của Phòng hiệu quả", "7": "Đảm bảo đội ngũ Công ty có năng lực, chuyên nghiệp, làm việc hiệu quả và phát triển", "8": "Đảm bảo báo cáo đầy đủ, chính xác và đúng quy định", "9": "Thực hiện chức năng, nhiệm vụ theo Quy chế quản lý Công ty có vốn đầu tư"}, "Z0092": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Quản lý chung phòng QLDA", "3": "Điều phối phân công công việc cho các nhân viên Phòng", "4": "Kiểm soát các chi phí (hoạt động, đầu tư) của Phòng", "5": "Kiểm tra soát xét hồ sơ thanh quyết toán theo Hợp đồng", "6": "Quản lý các nhà thầu thi công về chất lượng- tiến độ -ATLĐ", "7": "Tổ chức, quản lý và giám sát việc thực hiện các công tác thiết kế", "8": "Thực hiện các công tác pháp lý đầu tư dự án theo đúng quy định", "9": "Xử lý các vấn đề phát sinh ngoài hồ sơ thiết kế và ngoài hợp đồng"}, "Z0140": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Tổ chức, Pháp luật", "3": "Đoàn kết - Trung thực - Chính xác - Minh bạch", "4": "Tư duy công nghiệp - Hành vi chuyên nghiệp", "5": "Giao tiếp chuẩn mực - Ứng xử văn minh", "6": "Xây dựng kế hoạch chăm sóc khách hàng", "7": "Lấy chất lượng dịch vụ là tiên quyết", "8": "Mục tiêu hành động dựa trên hiệu quả kinh doanh khách hàng", "9": "Sự hài lòng của khách hàng làm động lực", "10": "Hài hòa lợi ích tổ chức với khách hàng và các bên liên quan"}, "Z0014": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Công tâm trong quản lý – Trách nhiệm trong quyết định – Chuyên môn trong xử lý", "3": "Nghĩ theo quy chuẩn – Làm theo tiêu chuẩn", "4": "Tối ưu hiệu suất – Gia tăng lợi nhuận", "5": "Tầm nhìn đổi mới – Phát triển bền vững", "6": "Gắn kết đồng đội – Hợp tác khách hàng"}, "Z0110": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Đảm bảo tính pháp lý liên quan đến hoạt động cấp thoát nước, môi trường", "3": "Đảm bảo nhà máy xử lý tập trung hoạt động liên tục và hiệu quả", "4": "Xây dựng đội nhóm đoàn kết, trách nhiệm, hoàn thành nhiệm vụ được giao"}, "Z0086": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Quản lý, triển khai các kế hoạch duy trì, phát triển hệ thống cảnh quan", "3": "Xây dựng kế hoạch và triển khai các hoạt động duy tu, sửa chữa", "4": "Thông báo phí duy tu cơ sở hạ tầng, đất", "5": "Thực hiện các dịch vụ tiện ích đối với các nhà đầu tư trong KCN, KDC – TĐC, KKC", "6": "Quy hoạch, lập kế hoạch phát triển vườn ươm theo chiến lược công ty", "7": "Phối hợp tốt và hiệu quả các Phòng chức năng trong việc hỗ trợ Khách hàng", "8": "Xây dựng môi trường làm việc gắn kết, trách nhiệm và sáng tạo", "9": "Triển khai thực hiện chức năng, nhiệm vụ theo Quy chế quản lý Công ty có vốn đầu tư"}, "Z0412": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hướng đến lợi ích của Tổ Chức", "3": "Đúng - Đủ với yêu cầu và điều kiện thực tế", "4": "Kiểm soát tính đa dạng của Công nghệ - Kỹ thuật", "5": "Tuân thủ quy định pháp luật", "6": "An toàn thông tin là yếu tố sống còn", "7": "Đội ngũ là nòng cốt, công nghệ là động lực", "8": "Công nghệ nâng tầm, doanh nghiệp vươn xa", "9": "Cùng nhau khai thác hiệu quả CNTT, cùng nhau thành công", "10": "Hài lòng khách hàng nội bộ là động lực phát triển của CNTT"}, "Z0370": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Pháp luật và quy định nội bộ Công ty", "3": "Bảo mật thông tin, không nhận hối lộ", "4": "Sử dụng thời gian và tài sản Công ty đúng mục đích và hiệu quả", "5": "Uy tín, trách nhiệm, tôn trọng lãnh đạo, đồng nghiệp, đối tác", "6": "Lập kế hoạch, tổ chức và triển khai công việc hoàn thành mục tiêu được giao", "7": "Phát triển năng lực cá nhân phù hợp với yêu cầu công việc", "8": "Đàm phán thương lượng với đối tác dựa trên lợi ích tổ chức", "9": "Chịu trách nhiệm về tính chính xác của dữ liệu, báo cáo", "10": "Quản lý hiệu suất, kết quả công việc của nhân viên"}, "Z0098": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Quản lý vận hành hệ thống cấp thoát nước theo quy định", "3": "Đảm bảo công tác bảo trì, bảo dưỡng, sửa chữa thiết bị đúng quy định", "4": "Đảm bảo công tác vệ sinh, cảnh quan nhà máy đúng quy định", "5": "Kịp thời đề xuất các biện pháp cải tiến, tối ưu chi phí vận hành"}, "Z0409": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Kỷ luật: Tuân thủ theo quy định của tổ chức và pháp luật", "3": "Hiệu quả: Sử dụng thời gian, tài sản và ngân sách đúng mục đích", "4": "Minh bạch: Trung thực, khách quan, tất cả vì lợi ích của tổ chức", "5": "Chuẩn mực: Tôn trọng, chuyên nghiệp trong giao tiếp và ứng xử", "6": "Đảm bảo hình ảnh Thương hiệu", "7": "Truyền thông chính xác, kịp thời", "8": "Thiết kế chỉn chu, sáng tạo", "9": "Sự kiện chuyên nghiệp, chu toàn"}, "Z0119": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Pháp luật và quy định nội bộ Công ty", "3": "Bảo mật thông tin, không nhận hối lộ", "4": "Sử dụng thời gian và tài sản Công ty đúng mục đích và hiệu quả", "5": "Uy tín, trách nhiệm, tôn trọng lãnh đạo, đồng nghiệp, đối tác", "6": "Đảm bảo lập báo cáo tài chính theo đúng chuẩn mực kế toán và chế độ kế toán", "7": "Đảm bảo lập cáo cáo tài chính trung thực và hợp lý", "8": "Lập các báo cáo thuế theo đúng quy định", "9": "Thu thập, xử lý thông tin thông qua các nghiệp vụ kinh tế phát sinh", "10": "Đề xuất các giải pháp liên quan đến công tác kế toán, thuế đúng quy định"}, "Z0438": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định pháp luật, tổ chức và đạo đức nghề nghiệp", "3": "Kiểm soát độc lập, trách nhiệm, khách quan", "4": "Bảo mật thông tin, truyền thông hiệu quả", "5": "Kiểm toán nội bộ trên cơ sở định hướng rủi ro", "6": "Thực hiện chương trình kiểm toán nội bộ toàn diện hàng năm", "7": "Đảm bảo chất lượng kiểm toán nội bộ", "8": "Tham mưu cải tiến quy trình vận hành", "9": "Cập nhật liên tục các quy định mới để hỗ trợ công việc hiệu quả", "10": "Thực hiện vai trò của Ban Kiểm soát các Công ty thành viên"}, "Z0286": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Đảm bảo thực hiện quan trắc và chuyển giao chất thải theo quy định", "3": "Đảm bảo phối hợp đào tạo, ứng phó sự cố môi trường theo quy định", "4": "Đảm bảo thực các báo cáo chuyên ngành theo quy định pháp luật", "5": "Sẵn sàng thực hiện các công việc phù hợp với năng lực chuyên môn"}, "Z0291": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Đảm bảo công tác vận hành hệ thống cấp thoát nước đúng quy định.", "3": "Đảm bảo công tác cảnh quan nhà máy theo quy định.", "4": "Đề xuất các biện pháp cải tiến; tối ưu chi phí vận hành.", "5": "Báo cáo đầy đủ các hoạt động liên quan đến hệ thống cấp thoát nước."}, "Z0500": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Tổ chức, Pháp luật", "3": "Đoàn kết - Trung thực - Chính xác - Minh bạch", "4": "Tư duy công nghiệp - Hành vi chuyên nghiệp", "5": "Giao tiếp chuẩn mực - Ứng xử văn minh", "6": "Hoàn thành tốt các công việc được giao", "7": "Thực hiện hiệu quả mục tiêu kinh doanh", "8": "Đóng góp xây dựng, phát triển đơn vị", "9": "Hài hòa lợi ích tổ chức với khách hàng và các bên liên quan"}, "Z0111": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Quản lý công tác duy tu cơ sở hạ tầng", "3": "Lập, triển khai kế hoạch duy tu sửa chữa cơ sở hạ tầng", "4": "Quản lý, bảo vệ, bảo dưỡng thường xuyên các công trình hạ tầng", "5": "Phối hợp các bộ phận để kiểm tra, khắc phục hư hỏng hạ tầng", "6": "Hướng dẫn, giám sát các đơn vị thi công đảm bảo hạ tầng KCN", "7": "Phối hợp các phòng ban để xử lý các vướng mắc liên quan", "8": "Kiểm tra công tác tuân thủ quy trình, quy chế nội bộ công ty", "9": "Báo cáo định kì tiến độ và chất lượng cho cấp quản lý trực tiếp", "10": "Thực hiện các công tác khác khi ban TGĐ giao"}, "Z0504": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Giám sát kỹ thuật trong quá trình duy tu, sửa chữa xây dựng cơ bản", "3": "Đề xuất khối lượng vật tư cho hạng mục quản lý", "4": "Kiểm tra bản vẽ và biện pháp thi công cải tạo nhà xưởng", "5": "Quản lý tổ đội thi công theo đúng tiến độ, an toàn, chất lượng", "6": "Xử lý các vấn đề phát sinh trong quá trình thi công", "7": "Bóc tách khối lượng, thực hiện đánh giá bảng khối lượng thi công", "8": "Phối hợp với các phòng ban, quản lý nhà thầu trong quá trình thi công", "9": "Báo cáo định kì tiến độ và chất lượng cho cấp quản lý trực tiếp", "10": "Thực hiện các công tác khác khi ban TGĐ giao"}, "Z0247": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Công tâm, trách nhiệm trong điều hành và xử lý công việc.", "3": "Thực hiện theo quy định, tiêu chuẩn.", "4": "Làm việc Chăm chỉ, Tận tâm.", "5": "Học hỏi, nâng cao trình độ.", "6": "Đoàn kết, tương trợ."}, "Z0499": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thống kê nhanh chóng – Số liệu chính xác.", "3": "Hỗ trợ nhanh chóng – Khách hàng vừa lòng.", "4": "Tinh thần trách nhiệm cao – Phối hợp công tác tốt.", "5": "Tập trung sáng tạo – Đoàn kết nội bộ.", "6": "Giao tiếp chuẩn mực - Ứng xử văn minh."}, "Z0245": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Kiểm soát tiến độ, khối lượng, chất lượng công trình.", "3": "Thi công đảm bảo an toàn lao động.", "4": "Kiểm tra nghiệm thu, quyết toán, hoàn công công trình.", "5": "Xử lý giải quyết các vướng mắc trong thi công.", "6": "Quản lý, điều phối các nhà thầu thi công.", "7": "Tham mưu xử lý các vướng mắc trong thi công.", "8": "Tham gia kiểm tra, giám sát các gói thầu.", "9": "Phối hợp, hỗ trợ đơn vị, tổ chức, cá nhân để hoàn thành nhiệm vụ được giao."}, "Z0335": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Xây dựng ngân sách và kiểm soát chặt chẽ các chi phí", "3": "Điều phối và cập nhật chi tiết thông tin các cuộc họp", "4": "Đôn đốc các đơn vị liên quan về việc thực hiện hồ sơ đúng yêu cầu", "5": "Soát xét tất cả hồ sơ trước khi thực hiện trình ký", "6": "Đảm bảo hồ sơ tài liệu được lưu trữ và sắp xếp một cách khoa học", "7": "Tổng hợp thông tin các dự án và cập nhật báo cáo kịp thời", "8": "Phối hợp với các phòng ban Công ty để xử lý các công tác liên quan nghiệp vụ", "9": "Liên hệ và kết nối thông tin với các đối tác và Sở Ban ngành"}, "Z0414": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hướng đến lợi ích của Tổ chức", "3": "Đúng - Đủ với yêu cầu và điều kiện thực tế", "4": "Kiểm soát tính đa dạng của công nghệ-kỹ thuật", "5": "Tuân thủ quy định pháp luật", "6": "Bảo mật tuyệt đối, dữ liệu an toàn", "7": "Hệ thống ổn định, dịch vụ hoàn hảo", "8": "Khách hàng là trọng tâm, dịch vụ là ưu tiên.", "9": "Đoàn kết, trách nhiệm, cùng phát triển."}, "Z0237": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích.", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật.", "6": "Tiếp nhận yêu cầu, xem xét và phúc đáp kế hoạch cung ứng", "7": "Tìm kiếm, đàm phán, so sánh và lựa chọn đơn vị cung cấp", "8": "Ký kết, theo dõi tiến độ cung cấp và thanh toán đơn hàng/ hợp đồng", "9": "Xây dựng dữ liệu hàng hóa, dịch vụ, nhà cung cấp và đánh giá định kỳ"}, "Z0549": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Kỷ luật: Tuân thủ theo quy định của tổ chức và pháp luật.", "3": "Hiệu quả: Sử dụng thời gian, tài sản và ngân sách đúng mục đích.", "4": "Minh bạch: Trung thực, khách quan, tất cả vì lợi ích của tổ chức.", "5": "Chuẩn mực: Tôn trọng, chuyên nghiệp trong giao tiếp và ứng xử.", "6": "Lập kế hoạch, tổ chức, điều phối và kiểm soát các hoạt động thuộc nghiệp vụ Quản lý Thương hiệu", "7": "Hướng dẫn, đào tạo nhân sự trực thuộc", "8": "Rà soát, điều chỉnh VBLQ", "9": "Báo cáo đầy đủ, kịp thời, chính xác", "10": "Tham mưu, đề xuất giải pháp cải tiến công việc"}, "Z0812": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ nội bộ", "3": "Số liệu chính xác – kịp thời – trọng tâm", "4": "Thời gian là tài sản, sử dụng cho hiệu quả", "5": "Tổ chức công việc chặt chẽ, chiến lược rõ ràng", "6": "Quán xuyến cấp dưới, chịu trách nhiệm trước cấp trên", "7": "Theo sát chỉ đạo, tham mưu hiệu quả", "8": "Đào tạo nhân sự vững mạnh, luôn mở rộng kiến thức và nâng cao kỹ năng mềm", "9": "Tác phong chuẩn chỉnh, phát ngôn chuẩn mực, không tư lợi, không sai sự thật", "10": "Học kỹ các luật doanh nghiệp, chứng khoán, các luật liên quan đến HĐQT và Công ty"}, "Z0201": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Tổ chức quản lý công tác hành chính, nhân sự đảm bảo hiệu quả, công bằng", "7": "Xây dựng và kiểm soát tối ưu chi phí trong kế hoạch", "8": "Chủ động phối hợp và kết nối các Đơn vị hoành thành mục tiêu chung", "9": "Quản lý, hướng dẫn CBNV hoàn thành mục tiêu và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức tham mưu chuyên môn chính xác"}, "Z0350": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Tổ chức quản lý công tác kế toán, tài chính, kế hoạch chính xác, hiệu quả", "7": "Xây dựng và kiểm soát thực hiện kế hoạch kinh doanh Công ty tháng/ quý/ năm", "8": "Chủ động phối hợp và kết nối các Đơn vị hoàn thành mục tiêu chung", "9": "Quản lý, hướng dẫn CBNV hoàn thành mục tiêu và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức tham mưu chuyên môn chính xác"}, "Z0696": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý, giám sát và đảm bảo hiệu quả hoạt động kinh doanh của Đơn vị", "7": "Xây dựng và kiểm soát thực hiện kế hoạch ngân sách hàng tháng/ quý/ năm", "8": "Mở rộng mối quan hệ khách hàng, đối tác và chăm sóc hệ khách hàng", "9": "Quản lý, hướng dẫn CBNV hoàn thành mục tiêu và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức và kỹ năng trong hoạt động kinh doanh"}, "Z0018": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý, giám sát và đảm bảo hiệu quả hoạt động kinh doanh của Đơn vị", "7": "Xây dựng và kiểm soát thực hiện kế hoạch ngân sách hàng tháng/ quý/ năm", "8": "Mở rộng mối quan hệ khách hàng, đối tác và chăm sóc hệ khách hàng", "9": "Quản lý, hướng dẫn CBNV hoàn thành mục tiêu và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức và kỹ năng trong hoạt động kinh doanh"}, "Z0035": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý, giám sát và đảm bảo hiệu quả hoạt động kinh doanh của Đơn vị", "7": "Xây dựng và kiểm soát thực hiện kế hoạch ngân sách hàng tháng/ quý/ năm", "8": "Mở rộng mối quan hệ khách hàng, đối tác và chăm sóc hệ khách hàng", "9": "Quản lý, hướng dẫn CBNV hoàn thành mục tiêu và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức và kỹ năng trong hoạt động kinh doanh"}, "Z0159": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Đảm bảo số liệu kế toán đầy đủ, chính xác, phù hợp pháp luật", "7": "Đảm bảo báo cáo chính xác, rõ ràng, ngắn gọn và đầy đủ nội dung", "8": "Đảm bảo thanh khoản, kiểm soát chi phí hoạt động, quản lý vốn hiệu quả", "9": "Quản lý, hướng dẫn CBNV hoàn thành mục tiêu và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức tham mưu chuyên môn chính xác"}, "Z0189": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý, giám sát và đảm bảo hiệu quả hoạt động kinh doanh của Đơn vị", "7": "Xây dựng và kiểm soát thực hiện kế hoạch kinh doanh hàng tháng/ quý/ năm", "8": "Tăng cường mở rộng và chăm sóc hệ khách hàng", "9": "Quản lý, hướng dẫn và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức và kỹ năng trong hoạt động kinh doanh"}, "Z0257": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý, giám sát và đảm bảo hiệu quả hoạt động kinh doanh của Đơn vị", "7": "Xây dựng và kiểm soát thực hiện kế hoạch kinh doanh hàng tháng/ quý/ năm", "8": "Tăng cường mở rộng và chăm sóc hệ khách hàng", "9": "Quản lý, hướng dẫn và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức và kỹ năng trong hoạt động kinh doanh"}, "Z0391": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật", "3": "Hành động vì lợi ích Công ty/ Tập đoàn", "4": "Luôn làm điều đúng", "5": "Chấp hành nghiêm chỉnh quy định của Công ty", "6": "Đảm bảo hành động pháp lý phù hợp mục tiêu Công ty, quy định pháp luật", "7": "Quản trị rủi ro – quản trị công việc – quản trị nhân sự hài hòa và hiệu quả", "8": "Cầu thị, quyết liệt và trách nhiệm cao nhất trong công việc"}, "Z0768": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Tổ chức quản lý công tác marketing hiệu quả, phát triển hệ khách hàng", "7": "Xây dựng và kiểm soát thực hiện kế hoạch hàng tháng/ quý/ năm", "8": "Chủ động phối hợp và kết nối các Đơn vị hoành thành mục tiêu chung", "9": "Quản lý, hướng dẫn CBNV hoàn thành mục tiêu và phát triển nhân sự kế thừa", "10": "Cập nhật công nghệ, kiến thức ngành áp dụng và tham mưu chuyên môn hiệu quả"}, "Z0745": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Giám sát công tác an ninh, PCCC và vệ sinh văn phòng/ kho bãi", "7": "Quản lý, lập kế hoạch và kiểm soát bảo trì bảo dưỡng tài sản công ty", "8": "Quản lý và triển khai công tác mua sắm chất lượng, tiết kiệm, đúng mục đích", "9": "Rà soát bảng biển hiệu, logo công ty đạt hình ảnh thương hiệu", "10": "Quản lý và giám sát vận hành Đội xe ô tô đúng quy định"}, "Z0551": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích.", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Phân công và quản lý lịch làm việc Đội sửa chữa đảm bảo hiệu quả", "7": "Khảo sát và kiểm soát khối lượng và dự toán vật tư phù hợp, hiệu quả", "8": "Đảm bảo hạng mục thi công đúng tiến độ/ kế hoạch", "9": "Kiểm soát công cụ dụng cụ phục vụ sửa chữa hiệu quả, tránh thất thoát", "10": "Giám sát an toàn, vệ sinh lao động môi trường thi công"}, "Z0564": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Ghi nhận số liệu đầy đủ, chính xác, phù hợp pháp luật và quy định Công ty", "7": "Đảm bảo báo cáo chính xác, rõ ràng, ngắn gọn và đầy đủ nội dung", "8": "Xây dựng và kiểm soát thực hiện kế hoạch kinh doanh tháng/ quý/ năm", "9": "Phối hợp các đơn vị, Công ty con trong công tác tài chính, kế hoạch", "10": "Cập nhật quy định pháp luật, kiến thức tham mưu chuyên môn chính xác"}, "Z0612": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý công tác pháp lý, hồ sơ đầu tư xây dựng", "7": "Phối hợp trong việc quản lý và triển khai dự án cho các nhân sự", "8": "Quản lý và thực hiện công tác thư ký, tổng hợp của Đơn vị", "9": "Tham mưu cho Trưởng phòng về hoạt động chung của phòng Dự án", "10": "Cập nhật quy định pháp luật, kiến thức chuyên môn chính xác"}, "Z0637": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích.", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý và giám sát việc thực hiện các công tác thiết kế", "7": "Tham gia các thủ tục liên quan công tác quy hoạch và điều chỉnh quy hoạch", "8": "Tham gia giám sát triển khai quy hoạch và điều chỉnh quy hoạch của dự án", "9": "Thiết kế kiến trúc hạng mục phát sinh theo chỉ đạo", "10": "Phối hợp, hỗ trợ các đơn vị, cá nhân hoàn thành nhiệm vụ được giao"}, "Z0021": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Xây dựng và kiểm soát thực hiện kế hoạch kinh doanh hàng tháng/ quý/ năm", "7": "Tăng cường mở rộng và chăm sóc hệ khách hàng", "8": "Kiểm soát tình trạng kho bãi đảm bảo an toàn vệ sinh kho bãi", "9": "Quản lý, hướng dẫn và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức và kỹ năng trong hoạt động kinh doanh"}, "Z0545": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Đảm bảo công suất khai thác kho được phân công", "7": "Tìm kiếm, quản lý và chăm sóc khách hàng", "8": "Soạn thảo Hợp đồng, văn bản liên quan đến hoạt động kinh doanh", "9": "Tham gia kiểm tra kho bãi định kỳ/ đột xuất đảm bảo an toàn vệ sinh kho bãi", "10": "Cập nhật quy định pháp luật, tình hình thị trường liên quan đến hoạt động kinh doanh"}, "A0499": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý và kiểm soát công tác an ninh, PCCC và vệ sinh kho bãi", "7": "Quản lý, lập kế hoạch và kiểm soát bảo trì bảo dưỡng tài sản Công ty", "8": "Quản lý và kiểm soát công tác mua sắm chất lượng, tiết kiệm, đúng mục đích", "9": "Rà soát bảng biển hiệu, logo Công ty đạt hình ảnh thương hiệu", "10": "Tuân thủ lệnh điều động, yêu cầu của quản lý trực tiếp, ngành dọc"}, "Z0598": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Nhập liệu thông tin khách hàng lên phần mềm đầy đủ và chính xác", "7": "Theo dõi thời hạn Hợp đồng và thời gian tăng giá Hợp đồng", "8": "Tính phí thuê kho, gửi giấy báo phí và phối hợp thu hồi công nợ khách hàng", "9": "Theo dõi chi phí bốc xếp và quản lý Hợp đồng, văn bản liên quan đến kinh doanh", "10": "Dự báo và theo dõi thực hiện kế hoạch hàng tháng/ quý/ năm từng dịch vụ"}, "A0453": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Xây dựng và kiểm soát thực hiện kế hoạch kinh doanh hàng tháng/ quý/ năm", "7": "Tăng cường mở rộng và chăm sóc hệ khách hàng", "8": "Kiểm soát tình trạng kho bãi đảm bảo an toàn vệ sinh kho bãi", "9": "Quản lý, hướng dẫn và phát triển nhân sự kế thừa", "10": "Cập nhật quy định pháp luật, kiến thức và kỹ năng trong hoạt động kinh doanh"}, "Z0735": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Đảm bảo công suất khai thác kho được phân công", "7": "Tìm kiếm, quản lý và chăm sóc khách hàng", "8": "Soạn thảo Hợp đồng, văn bản liên quan đến hoạt động kinh doanh", "9": "Tham gia kiểm tra kho bãi định kỳ/ đột xuất đảm bảo an toàn vệ sinh kho bãi", "10": "Cập nhật quy định pháp luật, tình hình thị trường liên quan đến hoạt động kinh doanh"}, "Z0676": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Đảm bảo công suất khai thác kho được phân công", "7": "Tìm kiếm, quản lý và chăm sóc khách hàng", "8": "Soạn thảo Hợp đồng, văn bản liên quan đến hoạt động kinh doanh", "9": "Tham gia kiểm tra kho bãi định kỳ/ đột xuất đảm bảo an toàn vệ sinh kho bãi", "10": "Cập nhật quy định pháp luật, tình hình thị trường liên quan đến hoạt động kinh doanh"}, "Z0263": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý và tổ chức công tác xuất nhập, đội bốc xếp hiệu quả", "7": "Lập lệnh xuất nhập hàng hóa đúng mã hàng, số lượng và đầy đủ chứng từ quy định", "8": "Quản lý và giám sát hàng hóa tồn kho thực tế theo đúng phần mềm", "9": "Quản lý sơ đồ kho, kiểm soát tối ưu diện tích kho khai thác", "10": "Đảm bảo an toàn hàng hóa, PCCC, vệ sinh kho bãi gọn gàng, sạch sẽ"}, "Z0315": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý và tổ chức công tác xuất nhập, đội bốc xếp hiệu quả", "7": "Lập lệnh xuất nhập hàng hóa đúng mã hàng, số lượng và đầy đủ chứng từ quy định", "8": "Quản lý và giám sát hàng hóa tồn kho thực tế theo đúng phần mềm", "9": "Quản lý sơ đồ kho, kiểm soát tối ưu diện tích kho khai thác", "10": "Đảm bảo an toàn hàng hóa, PCCC, vệ sinh kho bãi gọn gàng, sạch sẽ"}, "Z0413": {"1": "Công ty tôi xây dựng – Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Quản lý và tổ chức công tác xuất nhập, đội bốc xếp hiệu quả", "7": "Lập lệnh xuất nhập hàng hóa đúng mã hàng, số lượng và đầy đủ chứng từ quy định", "8": "Quản lý và giám sát hàng hóa tồn kho thực tế theo đúng phần mềm", "9": "Quản lý sơ đồ kho, kiểm soát tối ưu diện tích kho khai thác", "10": "Đảm bảo an toàn hàng hóa, PCCC, vệ sinh kho bãi gọn gàng, sạch sẽ"}, "TCC33": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Thượng tôn pháp luật, tuân thủ quy định nội bộ, luôn đặt lợi ích TTC lên trên", "3": "Dám chịu trách nhiệm; Luôn là ngọn cờ đầu, đại sứ thương hiệu tại cơ sở", "4": "Đảm bảo hệ thống quản trị luôn được rà soát; Điều hành xuyên suốt, hiệu quả", "5": "Định hướng hoạt động lõi, các giải pháp thực thi chiến lược hiệu quả", "6": "Quản trị thanh khoản; Quản lý hoạt động đầu tư chuyên nghiệp, trách nhiệm", "7": "Quản trị chi phí - rủi ro; Quản lý tài sản hiệu quả - gia tăng giá trị tích sản", "8": "Nắm bắt xu thế, lựa chọn quyết sách kinh doanh đáp ứng định hướng chiến lược", "9": "Xây dựng và duy trì các mối quan hệ cơ quan ban ngành, quan hệ hợp tác", "10": "Số hóa bản thân, số hóa công việc, định lượng cho mọi tác vụ và kỹ năng"}, "TCC05": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định Pháp luật và quy định nội bộ Công ty", "3": "Bảo mật thông tin, không nhận hối lộ", "4": "Sử dụng thời gian và tài sản Công ty đúng mục đích và hiệu quả", "5": "Uy tín, trách nhiệm, tôn trọng lãnh đạo, đồng nghiệp, đối tác", "6": "Báo cáo tài chính chính xác và đầy đủ", "7": "Quản lý và kiểm soát ngân sách", "8": "Quản lý quan hệ với Cơ quan thuế", "9": "Giám sát và quản lý công việc kế toán", "10": "Tích cực đóng góp chiến lược"}, "TCC07": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Đạt được và vượt mức các chỉ tiêu doanh số bán hàng đã đề ra", "3": "Nâng cao hiệu quả hoạt động của bộ phận, giảm thiểu chi phí", "4": "Đưa ra các ý tưởng và giải pháp để nâng cao tính cạnh tranh của sản phẩm/dự án", "5": "Quản lý quá trình triển khai và bán hàng của sản phẩm/dự án", "6": "Xây dựng và duy trì mối quan hệ tốt đẹp với khách hàng", "7": "Giải quyết kịp thời các vấn đề phát sinh của khách hàng", "8": "Tăng cường độ hài lòng của khách hàng", "9": "Xây dựng và triển khai các chiến lược kinh doanh hiệu quả", "10": "Đề xuất các sáng kiến mới để cải thiện hoạt động kinh doanh"}, "TCC29": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Lập kế hoạch, tổ chức, điều phối và kiểm soát hoạt động chuyên môn", "7": "Rà soát, hiệu chỉnh VBLQ thuộc lĩnh vực được phân công phụ trách", "8": "Báo cáo đầy đủ, kịp thời, chính xác", "9": "Tham mưu, đề xuất giải pháp cải tiến công việc", "10": "Hỗ trợ theo yêu cầu của BLĐ, phù hợp với năng lực chuyên môn"}, "TCC22": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Tuân thủ quy định - Hành động dựa trên lợi ích Tổ chức", "3": "Đoàn kết – Trung thực – Chính xác – Minh bạch", "4": "Tư duy công nghiệp – Hành vi chuyên nghiệp", "5": "Giao tiếp chuẩn mực – Ứng xử văn minh", "6": "Quản lý bằng thiện trí – Quyết định bằng tâm trí – Xử lý bằng lý trí", "7": "Suy nghĩ tối ưu – Thực thi trách nhiệm, quyết liệt", "8": "Không ngừng học hỏi – Sàn lọc kinh nghiệm – Phát triển bản thân", "9": "Phân công, đánh giá bằng con số - Hướng dẫn tận tình – Đổi mới chân tình (Cấp dưới)", "10": "Thân thiện và giúp đỡ (Đồng nghiệp) - Mềm dẻo và khôn khéo (Khách hàng)"}, "TCC24": {"1": "Công ty tôi xây dựng - Tài sản tôi gìn giữ - Khách hàng tôi phụng sự", "2": "Hiệu quả: Dùng thời gian, tài sản, ngân sách đúng mục đích", "3": "Minh bạch: Trung thực, bảo mật, trách nhiệm trong mọi nhiệm vụ", "4": "Chuẩn mực: Chuyên nghiệp, tôn trọng, chuẩn mực trong giao tiếp", "5": "Kỷ luật: Tuân thủ theo quy định của tổ chức, pháp luật", "6": "Điều phối, kiểm soát các hoạt động thuộc nghiệp vụ công tác được phân công", "7": "Đảm bảo công tác tổng hợp các báo cáo được kịp thời, đầy đủ", "8": "Rà soát kế hoạch mua sắm, VBLQ thuộc nghiệp vụ được phân công phụ trách", "9": "Chịu trách nhiệm quản lý chi phí tuân thủ chủ trương chính sách khung", "10": "Tham mưu, đề xuất giải pháp cải tiến công việc"}}
+
+// ===== HELPERS =====
+function getPeople(){ try{ const d=localStorage.getItem(KP); return d?JSON.parse(d):[...DEFAULT_PEOPLE]; }catch(e){ return [...DEFAULT_PEOPLE]; } }
+function getTL(){ try{ const d=localStorage.getItem(KTL); return d?JSON.parse(d):{...DEFAULT_TL}; }catch(e){ return {...DEFAULT_TL}; } }
+function savePeople(arr){ localStorage.setItem(KP,JSON.stringify(arr)); }
+function saveTL(obj){ localStorage.setItem(KTL,JSON.stringify(obj)); }
+
+let empRows=[], filterText='';
+let currentTLPersonId=null;
+
+// ===== NAVIGATION =====
+function gotoSec(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.nitem').forEach(n=>n.classList.remove('on'));
+  document.getElementById('sec-'+id).classList.add('on');
+  el.classList.add('on');
+  if(id==='tl') refreshTLPersonSel();
+  if(id==='reset') renderStorageInfo();
+}
+
+// ===== EMP TABLE =====
+function initEmpTable(){
+  empRows=[...getPeople()];
+  renderEmpTable();
+  document.getElementById('empCount').textContent=empRows.length+' nhân viên';
+}
+
+function renderEmpTable(filter=''){
+  const tbl=document.getElementById('empTable');
+  const rows=filter?empRows.filter(r=>r.hoTen.toLowerCase().includes(filter.toLowerCase())||r.id.toLowerCase().includes(filter.toLowerCase())):empRows;
+  tbl.innerHTML=rows.map((r,vi)=>{
+    const i=empRows.indexOf(r);
+    return `<tr data-idx="${i}">
+      <td><input type="number" value="${r.stt}" style="width:50px" onchange="empRows[${i}].stt=+this.value"></td>
+      <td><span class="id-chip" title="Nhấn để sửa" style="cursor:text;" contenteditable="true" onblur="empRows[${i}].id=this.textContent.trim()">${r.id}</span></td>
+      <td><input value="${r.hoTen}" onchange="empRows[${i}].hoTen=this.value" style="min-width:160px"></td>
+      <td><input value="${r.chucVu}" onchange="empRows[${i}].chucVu=this.value" style="min-width:200px"></td>
+      <td style="text-align:center"><input type="number" value="${r.tongSo}" min="1" max="20" style="width:54px;text-align:center" onchange="empRows[${i}].tongSo=+this.value"></td>
+      <td style="text-align:center"><input type="number" value="${r.chiDinh||''}" placeholder="-" style="width:54px;text-align:center" onchange="empRows[${i}].chiDinh=this.value?+this.value:null"></td>
+      <td><div class="row-actions"><button class="del-btn" onclick="delEmpRow(${i})" title="Xóa">✕</button></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function addEmpRow(){
+  const maxStt=empRows.reduce((m,r)=>Math.max(m,r.stt||0),0);
+  empRows.push({stt:maxStt+1,id:'NEW'+Date.now(),hoTen:'',chucVu:'',tongSo:10,chiDinh:null,soTL:null});
+  renderEmpTable(filterText);
+  document.getElementById('empCount').textContent=empRows.length+' nhân viên';
+  // scroll to bottom
+  document.querySelector('#empTable').lastElementChild?.scrollIntoView({behavior:'smooth'});
+}
+
+function delEmpRow(i){
+  if(!confirm('Xóa '+empRows[i].hoTen+'?')) return;
+  empRows.splice(i,1);
+  renderEmpTable(filterText);
+  document.getElementById('empCount').textContent=empRows.length+' nhân viên';
+}
+
+function filterEmp(v){
+  filterText=v;
+  renderEmpTable(v);
+}
+
+// ===== TL EDITOR =====
+function refreshTLPersonSel(){
+  const sel=document.getElementById('tlPersonSel');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- Chọn nhân viên --</option>';
+  getPeople().forEach(p=>{
+    const o=document.createElement('option');
+    o.value=p.id; o.textContent=`${p.stt}. ${p.hoTen} (${p.id})`;
+    sel.appendChild(o);
+  });
+  if(cur) sel.value=cur;
+  if(cur) loadTLEditor();
+}
+
+function loadTLEditor(){
+  const id=document.getElementById('tlPersonSel').value;
+  if(!id){ document.getElementById('tlLines').innerHTML='<div style="text-align:center;color:var(--dim2);padding:32px;font-size:13px;">Chọn nhân viên để xem tiêu lệnh</div>'; return; }
+  currentTLPersonId=id;
+  const p=getPeople().find(x=>x.id===id);
+  const tlAll=getTL();
+  const lines=tlAll[id]||{};
+  document.getElementById('tlEditorTitle').textContent=p?p.hoTen:'—';
+  renderTLLines(lines);
+}
+
+function renderTLLines(lines){
+  const keys=Object.keys(lines).map(Number).sort((a,b)=>a-b);
+  document.getElementById('tlLineCount').textContent=keys.length+' dòng';
+  document.getElementById('tlLines').innerHTML=keys.length?
+    keys.map(k=>`
+      <div class="tl-line" id="tlline-${k}">
+        <span class="tl-line-num">${k}</span>
+        <input value="${lines[k]||''}" placeholder="Nội dung tiêu lệnh ${k}..." data-key="${k}" oninput="tlLineChanged(${k},this.value)">
+        <button class="tl-line-del" onclick="delTLLine(${k})" title="Xóa dòng">✕</button>
+      </div>`).join(''):
+    '<div style="text-align:center;color:var(--dim2);padding:20px;font-size:13px;">Chưa có tiêu lệnh</div>';
+}
+
+let pendingTLEdits={};
+function tlLineChanged(k,v){ pendingTLEdits[k]=v; }
+
+function addTLLine(){
+  if(!currentTLPersonId){ toast('Chọn nhân viên trước','err'); return; }
+  const tl=getTL();
+  const lines=tl[currentTLPersonId]||{};
+  const keys=Object.keys(lines).map(Number);
+  const next=(keys.length?Math.max(...keys):0)+1;
+  lines[next]='';
+  tl[currentTLPersonId]=lines;
+  saveTL(tl);
+  pendingTLEdits={};
+  loadTLEditor();
+}
+
+function delTLLine(k){
+  if(!currentTLPersonId) return;
+  const tl=getTL();
+  const lines=tl[currentTLPersonId]||{};
+  delete lines[k];
+  tl[currentTLPersonId]=lines;
+  saveTL(tl);
+  delete pendingTLEdits[k];
+  // renumber
+  const sorted=Object.keys(lines).map(Number).sort((a,b)=>a-b);
+  const renumbered={};
+  sorted.forEach((k,i)=>{ renumbered[i+1]=lines[k]; });
+  tl[currentTLPersonId]=renumbered;
+  saveTL(tl);
+  loadTLEditor();
+}
+
+function saveTLForPerson(){
+  if(!currentTLPersonId){ toast('Chọn nhân viên trước','err'); return; }
+  const tl=getTL();
+  const lines=tl[currentTLPersonId]||{};
+  // collect all inputs
+  document.querySelectorAll('#tlLines .tl-line input').forEach(inp=>{
+    const k=+inp.getAttribute('data-key');
+    lines[k]=inp.value.trim();
+  });
+  // remove empty
+  Object.keys(lines).forEach(k=>{ if(!lines[k]) delete lines[k]; });
+  tl[currentTLPersonId]=lines;
+  saveTL(tl);
+  pendingTLEdits={};
+  loadTLEditor();
+  toast('Đã lưu tiêu lệnh ✓','ok');
+}
+
+// ===== SAVE ALL =====
+function saveAll(){
+  // save emp
+  savePeople(empRows.map(r=>({...r})));
+  // save tl if on tl page
+  if(currentTLPersonId) saveTLForPerson();
+  toast('Đã lưu tất cả ✓','ok');
+  document.getElementById('empCount').textContent=empRows.length+' nhân viên';
+}
+
+// ===== IMPORT/EXPORT =====
+function exportPeople(){
+  document.getElementById('exportPeopleBox').value=JSON.stringify(getPeople(),null,2);
+}
+function exportTL(){
+  document.getElementById('exportTLBox').value=JSON.stringify(getTL(),null,2);
+}
+function importPeople(){
+  try{
+    const data=JSON.parse(document.getElementById('importPeopleBox').value);
+    if(!Array.isArray(data)) throw new Error('Phải là mảng');
+    savePeople(data); empRows=[...data]; renderEmpTable();
+    document.getElementById('empCount').textContent=data.length+' nhân viên';
+    toast('Đã nhập '+data.length+' nhân viên ✓','ok');
+  }catch(e){ toast('JSON không hợp lệ: '+e.message,'err'); }
+}
+function importTL(){
+  try{
+    const data=JSON.parse(document.getElementById('importTLBox').value);
+    if(typeof data!=='object') throw new Error('Phải là object');
+    saveTL(data);
+    toast('Đã nhập tiêu lệnh ✓','ok');
+  }catch(e){ toast('JSON không hợp lệ: '+e.message,'err'); }
+}
+
+// ===== RESET =====
+function clearHistory(){
+  if(!confirm('Xóa toàn bộ lịch sử và thống kê?')) return;
+  localStorage.removeItem(KH); localStorage.removeItem(KS);
+  toast('Đã xóa lịch sử ✓','ok');
+  renderStorageInfo();
+}
+function resetToDefault(){
+  if(!confirm('Khôi phục về dữ liệu mặc định? Mọi chỉnh sửa sẽ mất.')) return;
+  localStorage.removeItem(KP); localStorage.removeItem(KTL);
+  empRows=[...DEFAULT_PEOPLE];
+  renderEmpTable();
+  document.getElementById('empCount').textContent=empRows.length+' nhân viên';
+  toast('Đã khôi phục dữ liệu mặc định ✓','ok');
+  renderStorageInfo();
+}
+function renderStorageInfo(){
+  const keys=[KP,KTL,KH,KS];
+  const labels={[KP]:'Nhân viên',[KTL]:'Tiêu lệnh',[KH]:'Lịch sử',[KS]:'Thống kê'};
+  document.getElementById('storageInfo').innerHTML=`<table style="width:100%;font-size:13px;border-collapse:collapse;">
+    ${keys.map(k=>{
+      const v=localStorage.getItem(k);
+      const sz=v?(v.length/1024).toFixed(1)+'KB':'—';
+      return `<tr style="border-bottom:1px solid var(--border2)">
+        <td style="padding:8px 4px;font-weight:500">${labels[k]}</td>
+        <td style="padding:8px 4px;color:var(--dim);font-family:DM Mono,monospace;font-size:11px">${v?'Có dữ liệu':'Chưa có'}</td>
+        <td style="padding:8px 4px;color:var(--dim2);font-family:DM Mono,monospace;font-size:11px">${sz}</td>
+      </tr>`;
+    }).join('')}
+  </table>`;
+}
+
+// ===== TOAST =====
+let toastT;
+function toast(msg,type='inf'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show '+type;
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// ===== INIT =====
+initEmpTable();
+</script>
+</body>
+</html>

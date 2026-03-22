@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTCIZ · Đăng Nhập</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Be Vietnam Pro',sans-serif;
+  background:#040d06;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  position:relative;
+}
+/* Stars background */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.star{position:absolute;background:#43A047;border-radius:50%;opacity:.25;}
+
+/* Green grid */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(67,160,71,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(67,160,71,.04) 1px,transparent 1px);
+  background-size:60px 60px;
+  z-index:0;
+}
+
+.card{
+  position:relative;z-index:1;
+  background:rgba(4,20,8,.85);
+  border:1px solid rgba(67,160,71,.25);
+  border-radius:20px;
+  padding:48px 44px;
+  width:420px;
+  box-shadow:0 0 60px rgba(27,94,32,.2), 0 0 120px rgba(27,94,32,.08);
+  backdrop-filter:blur(12px);
+}
+
+/* Glowing top bar */
+.card::before{
+  content:'';
+  position:absolute;top:0;left:24px;right:24px;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(67,160,71,.8),transparent);
+  border-radius:2px;
+}
+
+.logo-area{text-align:center;margin-bottom:36px;}
+.logo-icon{
+  width:64px;height:64px;
+  background:rgba(27,94,32,.2);
+  border:1px solid rgba(67,160,71,.3);
+  border-radius:16px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:28px;
+  margin-bottom:16px;
+}
+.logo-title{
+  font-family:'Orbitron',monospace;
+  font-size:22px;font-weight:900;
+  color:#fff;letter-spacing:3px;
+}
+.logo-sub{
+  font-size:11px;color:rgba(67,160,71,.6);
+  letter-spacing:2px;text-transform:uppercase;margin-top:5px;
+}
+
+.field{margin-bottom:18px;}
+.field label{
+  display:block;font-size:10px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+  color:rgba(67,160,71,.7);margin-bottom:8px;
+}
+.field input{
+  width:100%;padding:13px 16px;
+  background:rgba(0,0,0,.4);
+  border:1px solid rgba(67,160,71,.2);
+  border-radius:10px;
+  color:#e8f5e9;font-family:'Be Vietnam Pro',sans-serif;
+  font-size:14px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.field input:focus{
+  border-color:rgba(67,160,71,.6);
+  box-shadow:0 0 0 3px rgba(67,160,71,.08);
+}
+.field input::placeholder{color:rgba(255,255,255,.2);}
+
+.btn-login{
+  width:100%;padding:14px;margin-top:8px;
+  background:linear-gradient(135deg,#1B5E20,#2E7D32);
+  border:1px solid rgba(67,160,71,.4);
+  border-radius:10px;
+  color:#fff;font-family:'Orbitron',monospace;
+  font-size:12px;font-weight:700;letter-spacing:3px;
+  cursor:pointer;
+  transition:all .2s;
+  position:relative;overflow:hidden;
+}
+.btn-login::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,#2E7D32,#43A047);
+  opacity:0;transition:opacity .2s;
+}
+.btn-login:hover::before{opacity:1;}
+.btn-login span{position:relative;z-index:1;}
+.btn-login:active{transform:scale(.98);}
+
+.err{
+  background:rgba(198,40,40,.12);
+  border:1px solid rgba(198,40,40,.3);
+  border-radius:8px;padding:11px 14px;
+  font-size:12px;color:#ef9a9a;
+  margin-top:14px;display:none;
+  text-align:center;
+}
+.footer-note{
+  text-align:center;
+  margin-top:28px;
+  font-size:10px;color:rgba(67,160,71,.35);
+  letter-spacing:1.5px;
+  font-family:'Orbitron',monospace;
+}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div class="card">
+  <div class="logo-area">
+    <div class="logo-icon">🏭</div>
+    <div class="logo-title">TTCIZ</div>
+    <div class="logo-sub">Hệ Thống Kiểm Tra Tiêu Lệnh</div>
+  </div>
+
+  <div class="field">
+    <label>Tên đăng nhập</label>
+    <input type="text" id="uname" placeholder="Nhập tên đăng nhập..." autocomplete="username">
+  </div>
+  <div class="field">
+    <label>Mật khẩu</label>
+    <input type="password" id="pwd" placeholder="Nhập mật khẩu..." autocomplete="current-password">
+  </div>
+
+  <button class="btn-login" onclick="doLogin()"><span>🔐 ĐĂNG NHẬP</span></button>
+  <div class="err" id="err"></div>
+
+  <div class="footer-note">TTCIZ · HỆ THỐNG NỘI BỘ</div>
+</div>
+
+<script>
+const STORE_USERS   = 'tlcn_users';
+const STORE_SESSION = 'tlcn_session';
+const SESSION_HOURS = 8;
+
+// Simple hash (not cryptographic, for internal use only)
+function simpleHash(str){
+  let h = 5381;
+  for(let i=0;i<str.length;i++) h = ((h<<5)+h) ^ str.charCodeAt(i);
+  return (h >>> 0).toString(36);
+}
+
+function getUsers(){
+  try{
+    const d = localStorage.getItem(STORE_USERS);
+    return d ? JSON.parse(d) : null;
+  }catch(e){ return null; }
+}
+
+function initDefaultUsers(){
+  const users = [{
+    id:'u001', username:'admin',
+    pwHash: simpleHash('admin123'),
+    role:'superadmin', active:true,
+    displayName:'Quản trị viên',
+    createdAt: Date.now()
+  }];
+  localStorage.setItem(STORE_USERS, JSON.stringify(users));
+  return users;
+}
+
+function doLogin(){
+  const uname = document.getElementById('uname').value.trim();
+  const pwd   = document.getElementById('pwd').value;
+  const err   = document.getElementById('err');
+  err.style.display='none';
+
+  if(!uname||!pwd){ showErr('Vui lòng nhập đầy đủ thông tin'); return; }
+
+  let users = getUsers();
+  if(!users || users.length===0) users = initDefaultUsers();
+
+  const user = users.find(u=>
+    u.username.toLowerCase()===uname.toLowerCase() &&
+    u.pwHash===simpleHash(pwd) &&
+    u.active
+  );
+
+  if(!user){ showErr('Tên đăng nhập hoặc mật khẩu không đúng'); return; }
+
+  // Create session
+  const session = {
+    userId: user.id, username: user.username,
+    displayName: user.displayName || user.username,
+    role: user.role,
+    loginAt: Date.now(),
+    expires: Date.now() + SESSION_HOURS*3600*1000
+  };
+  localStorage.setItem(STORE_SESSION, JSON.stringify(session));
+
+  // Redirect
+  const redirect = new URLSearchParams(location.search).get('from') || 'index.html';
+  location.href = redirect;
+}
+
+function showErr(msg){
+  const el = document.getElementById('err');
+  el.textContent = msg; el.style.display='block';
+}
+
+// Enter key
+document.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+// Check already logged in
+(function(){
+  try{
+    const s = JSON.parse(localStorage.getItem(STORE_SESSION)||'null');
+    if(s && s.expires > Date.now()){
+      const redirect = new URLSearchParams(location.search).get('from') || 'index.html';
+      location.href = redirect;
+    }
+  }catch(e){}
+
+  // Stars
+  const container = document.getElementById('stars');
+  for(let i=0;i<40;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    const sz=Math.random()*2+1;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;opacity:${Math.random()*0.3+0.05}`;
+    container.appendChild(s);
+  }
+})();
+</script>
+</body>
+</html>

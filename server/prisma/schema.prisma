@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  VIEWER
+}
+
+enum AccountStatus {
+  ACTIVE
+  LOCKED
+}
+
+enum SessionStatus {
+  READY
+  LIVE
+  COMPLETED
+}
+
+enum ResultStatus {
+  PASSED
+  FAILED
+  PENDING
+}
+
+model User {
+  id           String        @id @default(cuid())
+  username     String        @unique
+  fullName     String
+  passwordHash String
+  role         Role          @default(VIEWER)
+  status       AccountStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Employee {
+  id          String       @id @default(cuid())
+  employeeCode String      @unique
+  fullName    String
+  rank        String?
+  position    String?
+  department  String?
+  notes       String?
+  commandSets CommandSet[]
+  results     SessionResult[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model CommandSet {
+  id          String        @id @default(cuid())
+  title       String
+  position    String?
+  description String?
+  employeeId  String?
+  employee    Employee?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  items       CommandItem[]
+  sessionLinks SessionResult[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model CommandItem {
+  id           String     @id @default(cuid())
+  commandSetId String
+  content      String
+  orderIndex   Int
+  commandSet   CommandSet @relation(fields: [commandSetId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model DrillSession {
+  id                String          @id @default(cuid())
+  sessionName       String
+  mode              String
+  status            SessionStatus   @default(READY)
+  selectedEmployeeId String?
+  selectedCommandSetId String?
+  ledPayload        Json?
+  startedAt         DateTime?
+  endedAt           DateTime?
+  results           SessionResult[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model SessionResult {
+  id            String        @id @default(cuid())
+  sessionId     String
+  employeeId    String
+  commandSetId  String?
+  score         Int?
+  resultStatus  ResultStatus  @default(PENDING)
+  evaluatorNote String?
+  session       DrillSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  commandSet    CommandSet?   @relation(fields: [commandSetId], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([sessionId, employeeId])
+}
+
+model AppSetting {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  value      Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
