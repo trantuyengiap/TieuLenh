@@ -25,7 +25,7 @@ const resultSchema = z.object({
   evaluatorNote: z.string().max(500).optional().or(z.literal('')),
 });
 
-router.get('/', async (_req, res) => {
+router.get('/', requireRole('SUPERADMIN', 'ADMIN'), async (_req, res) => {
   const sessions = await prisma.drillSession.findMany({
     include: {
       results: {

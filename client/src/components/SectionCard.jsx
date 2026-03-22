@@ -1,14 +1,13 @@
-export function SectionCard({ title, subtitle, actions, children }) {
+export function SectionCard({ title, subtitle, children }) {
   return (
-    <section className="card">
+    <div className="card">
       <div className="card-header">
         <div>
           <h3>{title}</h3>
-          {subtitle ? <p>{subtitle}</p> : null}
+          {subtitle && <p>{subtitle}</p>}
         </div>
-        {actions ? <div className="card-actions">{actions}</div> : null}
       </div>
-      <div className="card-content">{children}</div>
-    </section>
+      {children}
+    </div>
   );
 }

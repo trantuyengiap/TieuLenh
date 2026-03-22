@@ -23,8 +23,9 @@ const passwordSchema = z.object({
 function setAuthCookie(res, token) {
   res.cookie('accessToken', token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: false,
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
     maxAge: 12 * 60 * 60 * 1000,
   });
 }

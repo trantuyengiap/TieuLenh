@@ -6,7 +6,7 @@ import { requireRole } from '../middleware/auth.js';
 import { createHttpError } from '../utils/httpError.js';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB max
 
 async function exportData() {
   const [users, employees, commandSets, sessions, results, appSettings] = await Promise.all([

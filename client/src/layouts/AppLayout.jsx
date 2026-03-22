@@ -7,20 +7,33 @@ export function AppLayout({ children }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div>
-          <h1>TieuLenh</h1>
-          <p>Control Center</p>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-tag">HỆ THỐNG NỘI BỘ</div>
+          <div className="sidebar-brand-title">TTCIZ</div>
+          <div className="sidebar-brand-sub">Kiểm Tra Tiêu Lệnh</div>
         </div>
-        <nav>
-          <NavLink to="/admin">Trang quản trị</NavLink>
-          <NavLink to="/led">Màn hình LED</NavLink>
+        <nav className="sidebar-nav">
+          <NavLink to="/admin">
+            <span>🎯</span>
+            <span>Điều Hành</span>
+          </NavLink>
+          <NavLink to="/led">
+            <span>📺</span>
+            <span>Màn Hình LED</span>
+          </NavLink>
         </nav>
         <div className="sidebar-footer">
-          <div>
-            <strong>{user?.fullName}</strong>
+          <div className="status-indicator">
+            <span className="status-dot" />
+            <span>Hệ thống hoạt động</span>
+          </div>
+          <div className="sidebar-user">
+            <strong>{user?.fullName || '---'}</strong>
             <p>{user?.role}</p>
           </div>
-          <button className="secondary" onClick={logout}>Đăng xuất</button>
+          <button className="secondary" style={{ width: '100%' }} onClick={logout}>
+            ⏻ Đăng Xuất
+          </button>
         </div>
       </aside>
       <main className="content">{children}</main>

@@ -4,16 +4,14 @@ import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
   const { user, login } = useAuth();
-  const [form, setForm] = useState({ username: 'superadmin', password: 'Admin@123456' });
+  const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (user) {
-    return <Navigate to="/admin" replace />;
-  }
+  if (user) return <Navigate to="/admin" replace />;
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSubmit(e) {
+    e.preventDefault();
     setSubmitting(true);
     setError('');
     try {
@@ -27,25 +25,78 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
+      {/* Stars */}
+      <Stars />
+
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1>TieuLenh Control Center</h1>
-        <p>Đăng nhập bằng tài khoản được lưu trên server/database dùng chung.</p>
+        <div className="login-logo">
+          <div className="login-icon">🏭</div>
+          <div className="login-title">TTCIZ</div>
+          <div className="login-sub">Hệ Thống Kiểm Tra Tiêu Lệnh</div>
+        </div>
+
         <label>
           Tên đăng nhập
-          <input value={form.username} onChange={(e) => setForm((prev) => ({ ...prev, username: e.target.value }))} />
+          <input
+            type="text"
+            placeholder="Nhập tên đăng nhập..."
+            autoComplete="username"
+            value={form.username}
+            onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+          />
         </label>
+
         <label>
           Mật khẩu
           <input
             type="password"
+            placeholder="Nhập mật khẩu..."
+            autoComplete="current-password"
             value={form.password}
-            onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+            onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
           />
         </label>
-        {error ? <div className="error-banner">{error}</div> : null}
-        <button type="submit" disabled={submitting}>{submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}</button>
-        <small>Tài khoản mặc định được seed lần đầu: superadmin / Admin@123456</small>
+
+        {error && <div className="error-banner">⚠ {error}</div>}
+
+        <button type="submit" disabled={submitting}>
+          {submitting ? '⏳ ĐANG ĐĂNG NHẬP...' : '🔐 ĐĂNG NHẬP'}
+        </button>
+
+        <div className="login-note">TTCIZ · HỆ THỐNG NỘI BỘ</div>
       </form>
+    </div>
+  );
+}
+
+function Stars() {
+  const stars = Array.from({ length: 60 }, (_, i) => ({
+    id: i,
+    top: Math.random() * 100,
+    left: Math.random() * 100,
+    size: Math.random() * 2 + 1,
+    delay: Math.random() * 4,
+    duration: Math.random() * 3 + 2,
+  }));
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+      {stars.map((s) => (
+        <div
+          key={s.id}
+          style={{
+            position: 'absolute',
+            top: `${s.top}%`,
+            left: `${s.left}%`,
+            width: s.size,
+            height: s.size,
+            background: '#43A047',
+            borderRadius: '50%',
+            opacity: 0.25,
+            animation: `pulse ${s.duration}s ${s.delay}s ease-in-out infinite`,
+          }}
+        />
+      ))}
     </div>
   );
 }
